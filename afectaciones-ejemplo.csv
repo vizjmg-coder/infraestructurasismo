@@ -2,10 +2,10 @@ ID,MUNICIPIO,SUBREGIÓN,TIPO_AFECTACIÓN,GRAVEDAD,DESCRIPCIÓN,RED VIAL,UBICACI�
 1,TÁMESIS,SUROESTE,INFRAESTRUCTURA VIVIENDAS,BAJA,VIVIENDAS E IGLESIA RECIBIERON AFECTACIONES,,
 2,VENECIA,SUROESTE,INFRAESTRUCTURA RELIGIOSA,MEDIA,VIVIENDAS E IGLESIA RECIBIERON AFECTACIONES,,
 3,CONCORDIA,SUROESTE,INFRAESTRUCTURA EDUCATIVA,ALTA,"Afectaciones en Vivienda y en instituciones educativas con grietas, en vereda llamadas una casa muy affected y en la via majagual aumento de la falla",,Vereda Llamadas
-4,ANZÁ,OCCIDENTE,INFRAESTRUCTURA VIAL,ALTA,"Guintar puente el choco, con afectaciones",,Puente El Chocó
+4,ANZÁ,OCCIDENTE,INFRAESTRUCTURA VIAL,ALTA,"Guintar puente el choco, con afectaciones",Red Vial Secundaria,Puente El Chocó
 5,JARDÍN,SUROESTE,INFRAESTRUCTURA RELIGIOSA,Media,viviendas averiadas e iglesiada con desprendimiento de fachadas,,
 6,CIUDAD BOLIVAR,SUROESTE,INFRAESTRUCTURA EDUCATIVA,Media,afectación Mamposteria de las casas,,
-7,VALPARAÍSO,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Puente militar afectado,,Puente Militar
+7,VALPARAÍSO,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Puente militar afectado,Red Vial Secundaria,Puente Militar
 8,YARUMAL,NORTE,INFRAESTRUCTURA VIVIENDAS,BAJA,Edificaciones con fisuras,,
 9,YOLOMBÓ,NORDESTE,INFRAESTRUCTURA VIVIENDAS,BAJA,Afectaciones a viviendas. Infraestructura Vial sin afectaciones por el momento,,
 10,BETANIA,SUROESTE,INFRAESTRUCTURA VIVIENDAS,BAJA,Afectaciones a viviendas,,

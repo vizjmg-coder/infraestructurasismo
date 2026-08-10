@@ -576,13 +576,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const center = layer.getBounds().getCenter();
                 const color = getGravityColor(report.Gravedad);
                 const isVial = isVialType(report.Tipo_Afectacion);
+                const redVialLabel = report.Red_Vial ? report.Red_Vial : 'VÍA';
                 
-                // HTML Personalizado para el círculo de alerta pulsante (con prioridad visual para vial)
+                // HTML Personalizado para el círculo de alerta pulsante (con tipo de Red Vial)
                 const markerHtml = `
                     <div class="pulse-marker-wrapper ${isVial ? 'priority-vial-marker' : ''}" style="--marker-color: ${color}">
                         <div class="pulse-ring"></div>
                         <div class="pulse-dot"></div>
-                        ${isVial ? '<span class="vial-marker-indicator" title="Infraestructura Vial Prioritaria">⚡ VÍA</span>' : ''}
+                        ${isVial ? `<span class="vial-marker-indicator" title="Afectación en ${redVialLabel}">⚡ ${redVialLabel}</span>` : ''}
                     </div>
                 `;
                 
@@ -895,6 +896,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.style.backgroundColor = '';
             }
         });
+
+        // En pantallas móviles, si se selecciona un municipio, cambiar automáticamente a la vista de mapa
+        if (window.innerWidth <= 900 && state.showMapTab) {
+            state.showMapTab();
+        }
     }
 
     function deselectAll() {
@@ -910,12 +916,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* ==========================================================================
+       Navegación Móvil Adaptativa (Tabs / Drawer)
+       ========================================================================== */
+    function setupMobileNav() {
+        const tabMapBtn = document.getElementById('tab-map-btn');
+        const tabListBtn = document.getElementById('tab-list-btn');
+        const sidebar = document.querySelector('.sidebar');
+
+        if (!tabMapBtn || !tabListBtn || !sidebar) return;
+
+        function showMapTab() {
+            tabMapBtn.classList.add('active');
+            tabListBtn.classList.remove('active');
+            sidebar.classList.add('mobile-hidden');
+            if (state.leafletMap) {
+                setTimeout(() => state.leafletMap.invalidateSize(), 300);
+            }
+        }
+
+        function showListTab() {
+            tabListBtn.classList.add('active');
+            tabMapBtn.classList.remove('active');
+            sidebar.classList.remove('mobile-hidden');
+        }
+
+        tabMapBtn.addEventListener('click', showMapTab);
+        tabListBtn.addEventListener('click', showListTab);
+
+        state.showMapTab = showMapTab;
+
+        // En pantallas móviles (<= 900px), iniciar en vista de mapa
+        if (window.innerWidth <= 900) {
+            sidebar.classList.add('mobile-hidden');
+        }
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 900) {
+                sidebar.classList.remove('mobile-hidden');
+            } else if (!tabListBtn.classList.contains('active')) {
+                sidebar.classList.add('mobile-hidden');
+            }
+        });
+    }
+
+    /* ==========================================================================
        Manejadores de Eventos del DOM y UI
        ========================================================================== */
     
-    // Los manejadores de subida de archivos manuales han sido eliminados por solicitud del usuario,
-    // dando prioridad a las tarjetas de filtrado de tipo de afectación y la carga automática desde Google Sheets.
-
     // Configurar filtros y buscador de la UI
     function setupFilters() {
         // Buscador de texto
@@ -974,7 +1021,6 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.resetMapBtn.addEventListener('click', () => {
             deselectAll();
             
-            // Si hay municipios afectados, encuadrar sobre ellos. Si no, encuadrar el departamento completo.
             if (state.filteredReports.length > 0) {
                 fitMapToAffected();
             } else if (state.geojsonLayer) {
@@ -999,10 +1045,11 @@ document.addEventListener('DOMContentLoaded', () => {
        ========================================================================== */
     function init() {
         initMap();
+        setupMobileNav();
         setupFilters();
         setupInteractions();
         
-        // Cargar el GeoJSON (arranca la barra de progreso)
+        // Cargar el GeoJSON
         loadGeoJson();
         
         // Inicializar iconos Lucide

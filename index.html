@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SismoInfra Antioquia - Monitor de Afectaciones de Infraestructura</title>
     
     <!-- Google Fonts: Outfit -->
@@ -29,6 +29,16 @@
             </div>
             <span class="loading-subtext">Cargando límites municipales (22.4 MB)</span>
         </div>
+    </div>
+
+    <!-- Mobile Navigation Switcher (Solo móvil) -->
+    <div class="mobile-nav-bar" id="mobile-nav-bar">
+        <button class="mobile-tab-btn active" id="tab-map-btn">
+            <i data-lucide="map"></i> Mapa Interactivo
+        </button>
+        <button class="mobile-tab-btn" id="tab-list-btn">
+            <i data-lucide="list-filter"></i> Reportes & Filtros
+        </button>
     </div>
 
     <!-- Main Dashboard Container -->
