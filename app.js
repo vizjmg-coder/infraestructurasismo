@@ -338,6 +338,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     },
                     click: (e) => {
+                        if (e) {
+                            if (e.originalEvent) {
+                                L.DomEvent.stopPropagation(e.originalEvent);
+                                L.DomEvent.preventDefault(e.originalEvent);
+                            }
+                            L.DomEvent.stopPropagation(e);
+                        }
                         selectMunicipality(normalized, true);
                     }
                 });
@@ -598,7 +605,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Al hacer clic en el marcador, seleccionar el municipio
                 marker.on('click', (e) => {
-                    L.DomEvent.stopPropagation(e);
+                    if (e) {
+                        if (e.originalEvent) {
+                            L.DomEvent.stopPropagation(e.originalEvent);
+                            L.DomEvent.preventDefault(e.originalEvent);
+                        }
+                        L.DomEvent.stopPropagation(e);
+                    }
                     selectMunicipality(normalized, true);
                 });
 
