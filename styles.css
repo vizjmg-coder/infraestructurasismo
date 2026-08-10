@@ -925,3 +925,116 @@ body {
         padding: 0.6rem;
     }
 }
+
+/* ==========================================================================
+   Priority Styling: Infraestructura Vial
+   ========================================================================== */
+.priority-header-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    padding: 0.15rem 0.4rem;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.2); }
+    50% { box-shadow: 0 0 14px rgba(245, 158, 11, 0.6); }
+}
+
+.priority-stat {
+    position: relative;
+    border: 1px solid rgba(245, 158, 11, 0.35) !important;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(22, 25, 37, 0.7) 100%) !important;
+}
+
+.stat-icon-wrapper.amber {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.priority-vial-type-card {
+    border: 1px solid rgba(245, 158, 11, 0.4) !important;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
+    position: relative;
+}
+
+.priority-vial-type-card:hover {
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.3) !important;
+    transform: translateY(-2px);
+}
+
+.damage-type-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.type-priority-tag {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #f59e0b;
+    letter-spacing: 0.5px;
+}
+
+.priority-vial-card {
+    border-left: 4px solid #f59e0b !important;
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, transparent 100%) !important;
+}
+
+.card-badges-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.card-vial-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+}
+
+.vial-marker-indicator {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #f59e0b;
+    color: #000;
+    font-size: 0.58rem;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 4px;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    z-index: 1000;
+}
+
+.custom-pulse-icon.vial-custom-icon .pulse-dot {
+    background-color: #f59e0b !important;
+    box-shadow: 0 0 12px #f59e0b !important;
+}
+
+.custom-pulse-icon.vial-custom-icon .pulse-ring {
+    border-color: #f59e0b !important;
+}
+
+.info-vial-priority-tag {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    margin-left: 0.35rem;
+    display: inline-block;
+}

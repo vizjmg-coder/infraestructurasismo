@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         damageTypesGrid: document.getElementById('damage-types-grid'),
         
         statAffectedCount: document.getElementById('stat-affected-count'),
-        statHomesCount: document.getElementById('stat-homes-count'),
+        statVialCount: document.getElementById('stat-vial-count') || document.getElementById('stat-homes-count'),
         statHighGravity: document.getElementById('stat-high-gravity'),
         
         searchInput: document.getElementById('search-input'),
@@ -84,6 +84,13 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/[\u0300-\u036f]/g, "")
             .toUpperCase()
             .trim();
+    }
+
+    // Verificar si el tipo corresponde estrictamente a Infraestructura Vial (Prioritaria)
+    function isVialType(typeStr) {
+        if (!typeStr) return false;
+        const type = normalizeName(typeStr);
+        return type.includes('VIAL') || type.includes('CARRETERA') || type === 'INFRAESTRUCTURA VIAL';
     }
 
     // Retornar color según la gravedad
@@ -514,20 +521,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Calcular y renderizar estadísticas en el panel lateral
     function calculateStatistics() {
         const uniqueAffected = new Set(state.filteredReports.map(r => normalizeName(r.Municipio)));
-        dom.statAffectedCount.innerText = uniqueAffected.size;
+        if (dom.statAffectedCount) dom.statAffectedCount.innerText = uniqueAffected.size;
 
-        // Contar afectaciones de viviendas (búsqueda de subcadenas)
-        const homeReports = state.filteredReports.filter(r => {
-            const type = normalizeName(r.Tipo_Afectacion);
-            const desc = normalizeName(r.Descripcion);
-            return type.includes('VIVIENDA') || type.includes('CASA') || 
-                   desc.includes('VIVIENDA') || desc.includes('CASA') || desc.includes('COLAPSO');
-        });
-        dom.statHomesCount.innerText = homeReports.length;
+        // Contar afectaciones prioritarias de Infraestructura Vial
+        const vialReports = state.filteredReports.filter(r => isVialType(r.Tipo_Afectacion));
+        if (dom.statVialCount) dom.statVialCount.innerText = vialReports.length;
 
         // Gravedad Alta
         const highGravity = state.filteredReports.filter(r => r.Gravedad === 'Alta');
-        dom.statHighGravity.innerText = highGravity.length;
+        if (dom.statHighGravity) dom.statHighGravity.innerText = highGravity.length;
     }
 
     // Renderizar los marcadores de alerta en el centro geográfico de los municipios afectados
@@ -543,18 +545,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Obtener el centro del bounding box del polígono municipal
                 const center = layer.getBounds().getCenter();
                 const color = getGravityColor(report.Gravedad);
+                const isVial = isVialType(report.Tipo_Afectacion);
                 
-                // HTML Personalizado para el círculo de alerta pulsante
+                // HTML Personalizado para el círculo de alerta pulsante (con prioridad visual para vial)
                 const markerHtml = `
-                    <div class="pulse-marker-wrapper" style="--marker-color: ${color}">
+                    <div class="pulse-marker-wrapper ${isVial ? 'priority-vial-marker' : ''}" style="--marker-color: ${color}">
                         <div class="pulse-ring"></div>
                         <div class="pulse-dot"></div>
+                        ${isVial ? '<span class="vial-marker-indicator" title="Infraestructura Vial Prioritaria">⚡ VÍA</span>' : ''}
                     </div>
                 `;
                 
                 const customIcon = L.divIcon({
                     html: markerHtml,
-                    className: 'custom-pulse-icon',
+                    className: `custom-pulse-icon ${isVial ? 'vial-custom-icon' : ''}`,
                     iconSize: [32, 32],
                     iconAnchor: [16, 16]
                 });
@@ -573,7 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Renderizar la lista lateral de reportes
+    // Renderizar la lista lateral de reportes (ORDENADOS POR PRIORIDAD VIAL)
     function renderReportsList() {
         dom.reportsList.innerHTML = '';
         dom.visibleReportsCount.innerText = state.filteredReports.length;
@@ -583,13 +587,27 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        state.filteredReports.forEach(report => {
+        // Ordenar con PRIORIDAD ABSOLUTA a INFRAESTRUCTURA VIAL, luego por Gravedad
+        const gravityWeight = { 'Alta': 3, 'Media': 2, 'Baja': 1 };
+        const sortedReports = [...state.filteredReports].sort((a, b) => {
+            const aVial = isVialType(a.Tipo_Afectacion);
+            const bVial = isVialType(b.Tipo_Afectacion);
+            if (aVial && !bVial) return -1;
+            if (!aVial && bVial) return 1;
+            
+            const gA = gravityWeight[a.Gravedad] || 0;
+            const gB = gravityWeight[b.Gravedad] || 0;
+            return gB - gA;
+        });
+
+        sortedReports.forEach(report => {
             const normalizedName = normalizeName(report.Municipio);
             const color = getGravityColor(report.Gravedad);
             const rgb = getGravityRgb(report.Gravedad);
+            const isVial = isVialType(report.Tipo_Afectacion);
             
             const card = document.createElement('div');
-            card.className = `report-card ${state.selectedMpio === normalizedName ? 'active' : ''}`;
+            card.className = `report-card ${state.selectedMpio === normalizedName ? 'active' : ''} ${isVial ? 'priority-vial-card' : ''}`;
             card.style.setProperty('--gravity-color', color);
             card.style.setProperty('--gravity-color-rgb', rgb);
             
@@ -601,7 +619,10 @@ document.addEventListener('DOMContentLoaded', () => {
             card.innerHTML = `
                 <div class="card-header-row">
                     <span class="card-title">${report.Municipio}</span>
-                    <span class="card-badge">${report.Gravedad}</span>
+                    <div class="card-badges-wrapper">
+                        ${isVial ? '<span class="card-vial-badge">⚡ PRIORIDAD VIAL</span>' : ''}
+                        <span class="card-badge">${report.Gravedad}</span>
+                    </div>
                 </div>
                 <div class="card-subregion">${report.Subregion}</div>
                 <div class="card-desc">${report.Tipo_Afectacion} - ${report.Descripcion}</div>
@@ -613,9 +634,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             dom.reportsList.appendChild(card);
         });
+
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
     }
 
-    // Generar y renderizar las tarjetas dinámicas de tipo de afectación
+    // Generar y renderizar las tarjetas dinámicas de tipo de afectación (INFRAESTRUCTURA VIAL PRIMERO)
     function renderDamageTypeCards() {
         dom.damageTypesGrid.innerHTML = '';
         
@@ -635,21 +660,29 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Ordenar categorías colocando INFRAESTRUCTURA VIAL en PRIMERA posición
+        types.sort((a, b) => {
+            const aIsVial = isVialType(a);
+            const bIsVial = isVialType(b);
+            if (aIsVial && !bIsVial) return -1;
+            if (!aIsVial && bIsVial) return 1;
+            return counts[b] - counts[a];
+        });
+
         types.forEach(type => {
             const count = counts[type];
             const normalizedType = normalizeName(type);
             const isActive = state.activeFilters.damageType === normalizedType;
+            const isVial = isVialType(type);
 
             // Mapear icono lucide representativo
             let iconName = 'alert-octagon';
-            if (normalizedType.includes('VIVIENDA') || normalizedType.includes('CASA') || normalizedType.includes('TECHO')) {
+            if (isVial) {
+                iconName = 'milestone';
+            } else if (normalizedType.includes('VIVIENDA') || normalizedType.includes('CASA') || normalizedType.includes('TECHO')) {
                 iconName = 'home';
             } else if (normalizedType.includes('IGLESIA') || normalizedType.includes('TEMPLO') || normalizedType.includes('CATEDRAL')) {
                 iconName = 'church';
-            } else if (normalizedType.includes('VIA') || normalizedType.includes('CALLE') || normalizedType.includes('CARRETERA') || normalizedType.includes('DERRUMBE')) {
-                iconName = 'milestone';
-            } else if (normalizedType.includes('PUENTE')) {
-                iconName = 'activity';
             } else if (normalizedType.includes('SALUD') || normalizedType.includes('HOSPITAL') || normalizedType.includes('CLINICA')) {
                 iconName = 'heart-pulse';
             } else if (normalizedType.includes('GRIETA') || normalizedType.includes('FACHADA') || normalizedType.includes('MURO')) {
@@ -660,7 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const typeReports = state.reports.filter(r => normalizeName(r.Tipo_Afectacion) === normalizedType);
             const highCount = typeReports.filter(r => r.Gravedad === 'Alta').length;
             const lowCount = typeReports.filter(r => r.Gravedad === 'Baja').length;
-            let cardColor = 'var(--accent-orange)'; // default Media
+            let cardColor = isVial ? '#f59e0b' : 'var(--accent-orange)'; // default Media Amber para viales
             
             if (highCount > typeReports.length / 2) {
                 cardColor = 'var(--accent-red)';
@@ -669,12 +702,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const card = document.createElement('div');
-            card.className = `damage-type-card ${isActive ? 'active' : ''}`;
+            card.className = `damage-type-card ${isActive ? 'active' : ''} ${isVial ? 'priority-vial-type-card' : ''}`;
             
             if (isActive) {
                 card.style.borderColor = cardColor;
-                card.style.boxShadow = `0 0 10px ${cardColor}2a`;
-                card.style.background = `rgba(255, 255, 255, 0.03)`;
+                card.style.boxShadow = `0 0 14px ${cardColor}40`;
+                card.style.background = `rgba(255, 255, 255, 0.05)`;
             }
 
             card.innerHTML = `
@@ -682,7 +715,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="damage-type-count">${count}</span>
                     <i data-lucide="${iconName}" class="damage-type-icon" style="color: ${cardColor}"></i>
                 </div>
-                <span class="damage-type-label">${type.toLowerCase()}</span>
+                <div class="damage-type-body">
+                    <span class="damage-type-label">${type.toLowerCase()}</span>
+                    ${isVial ? '<span class="type-priority-tag">PRIORITARIO</span>' : ''}
+                </div>
             `;
 
             // Filtrar al hacer clic
@@ -755,9 +791,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Mostrar u ocultar la tarjeta de información flotante
         if (report) {
+            const isVial = isVialType(report.Tipo_Afectacion);
             dom.infoSubregion.innerText = report.Subregion;
             dom.infoMunicipality.innerText = report.Municipio;
-            dom.infoType.innerText = report.Tipo_Afectacion;
+            
+            if (isVial) {
+                dom.infoType.innerHTML = `${report.Tipo_Afectacion} <span class="info-vial-priority-tag">⚡ PRIORIDAD VIAL</span>`;
+            } else {
+                dom.infoType.innerText = report.Tipo_Afectacion;
+            }
+            
             dom.infoGravity.innerText = report.Gravedad;
             dom.infoDesc.innerText = report.Descripcion;
             
