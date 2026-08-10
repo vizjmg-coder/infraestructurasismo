@@ -74,7 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
         infoDesc: document.getElementById('info-desc-text'),
         closeInfoCardBtn: document.getElementById('close-info-card-btn'),
         zoomToMpioBtn: document.getElementById('zoom-to-mpio-btn'),
-        resetMapBtn: document.getElementById('reset-map-btn')
+        resetMapBtn: document.getElementById('reset-map-btn'),
+        exportPdfBtn: document.getElementById('export-pdf-btn')
     };
 
     /* ==========================================================================
@@ -1039,10 +1040,360 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // Botón flotante para exportar reporte PDF de infraestructura vial
+        if (dom.exportPdfBtn) {
+            dom.exportPdfBtn.addEventListener('click', exportVialPdfReport);
+        }
+
         // Clicar fuera de los municipios para deseleccionar
         state.leafletMap.on('click', () => {
             deselectAll();
         });
+    }
+
+    /* ==========================================================================
+       Generación de Mapa Canvas y Reporte PDF (Infraestructura Vial)
+       ========================================================================== */
+    
+    // Generar un gráfico tipo Canvas de la visión general de Antioquia con los puntos afectados
+    function generateAntioquiaCanvasMap(vialReports) {
+        if (!state.geojsonRaw || !state.geojsonRaw.features) {
+            return null;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 1200;
+        canvas.height = 850;
+        const ctx = canvas.getContext('2d');
+
+        // Fondo oscuro ejecutivo premium
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Grid sutil decorativo en el fondo
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < canvas.width; x += 40) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += 40) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+
+        // Calcular la caja delimitadora (Bounding Box) de Antioquia
+        let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+
+        function extractPoints(geometry) {
+            const pts = [];
+            if (geometry.type === 'Polygon') {
+                geometry.coordinates.forEach(ring => ring.forEach(pt => pts.push(pt)));
+            } else if (geometry.type === 'MultiPolygon') {
+                geometry.coordinates.forEach(poly => poly.forEach(ring => ring.forEach(pt => pts.push(pt))));
+            }
+            return pts;
+        }
+
+        state.geojsonRaw.features.forEach(feature => {
+            if (!feature.geometry) return;
+            const points = extractPoints(feature.geometry);
+            points.forEach(([lng, lat]) => {
+                if (lng < minLng) minLng = lng;
+                if (lng > maxLng) maxLng = lng;
+                if (lat < minLat) minLat = lat;
+                if (lat > maxLat) maxLat = lat;
+            });
+        });
+
+        if (minLng === Infinity) return null;
+
+        // Parámetros de proyección
+        const padding = 70;
+        const width = canvas.width - padding * 2;
+        const height = canvas.height - padding * 2;
+
+        const lngSpan = maxLng - minLng;
+        const latSpan = maxLat - minLat;
+
+        const scale = Math.min(width / lngSpan, height / latSpan);
+        const xOffset = padding + (width - lngSpan * scale) / 2;
+        const yOffset = padding + (height - latSpan * scale) / 2;
+
+        function project(lng, lat) {
+            const x = xOffset + (lng - minLng) * scale;
+            const y = yOffset + (maxLat - lat) * scale;
+            return [x, y];
+        }
+
+        // Conjunto de nombres normalizados de municipios con afectación vial
+        const affectedMpioMap = {};
+        vialReports.forEach(r => {
+            affectedMpioMap[normalizeName(r.Municipio)] = r;
+        });
+
+        // 1. Dibujar Polígonos de Municipios (todos igual, sin resaltar afectados)
+        state.geojsonRaw.features.forEach(feature => {
+            if (!feature.geometry) return;
+
+            const polygons = feature.geometry.type === 'Polygon' 
+                ? [feature.geometry.coordinates] 
+                : feature.geometry.coordinates;
+
+            polygons.forEach(polygon => {
+                polygon.forEach(ring => {
+                    if (ring.length === 0) return;
+                    ctx.beginPath();
+                    const [startX, startY] = project(ring[0][0], ring[0][1]);
+                    ctx.moveTo(startX, startY);
+
+                    for (let i = 1; i < ring.length; i++) {
+                        const [x, y] = project(ring[i][0], ring[i][1]);
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+
+                    // Todos los municipios con el mismo estilo neutro
+                    ctx.fillStyle = 'rgba(30, 41, 59, 0.65)';
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+                    ctx.lineWidth = 0.7;
+                    ctx.stroke();
+                });
+            });
+        });
+
+        // 2. Dibujar Puntos / Marcadores de Impacto en Municipios Afectados
+        vialReports.forEach(report => {
+            const normMpio = normalizeName(report.Municipio);
+            const layer = state.layerMap[normMpio];
+            let centerLng, centerLat;
+
+            if (layer) {
+                const center = layer.getBounds().getCenter();
+                centerLng = center.lng;
+                centerLat = center.lat;
+            } else {
+                const feature = state.geojsonRaw.features.find(f => normalizeName(f.properties.MPIO_NOMBR) === normMpio);
+                if (feature) {
+                    const pts = extractPoints(feature.geometry);
+                    let sumX = 0, sumY = 0;
+                    pts.forEach(([lng, lat]) => { sumX += lng; sumY += lat; });
+                    centerLng = sumX / pts.length;
+                    centerLat = sumY / pts.length;
+                }
+            }
+
+            if (centerLng && centerLat) {
+                const [x, y] = project(centerLng, centerLat);
+                const color = getGravityColor(report.Gravedad);
+
+                // Aura exterior translúcida
+                ctx.beginPath();
+                ctx.arc(x, y, 16, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${getGravityRgb(report.Gravedad)}, 0.25)`;
+                ctx.fill();
+
+                // Anillo de impacto
+                ctx.beginPath();
+                ctx.arc(x, y, 9, 0, Math.PI * 2);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                // Punto central brillante
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+
+                // Etiqueta del municipio con fondo tipo pill
+                const label = report.Municipio;
+                ctx.font = 'bold 11px Outfit, Arial, sans-serif';
+                const textMetrics = ctx.measureText(label);
+                const textWidth = textMetrics.width;
+                const pillPadding = 6;
+                const pillX = x - textWidth / 2 - pillPadding;
+                const pillY = y - 30;
+
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                if (ctx.roundRect) {
+                    ctx.roundRect(pillX, pillY, textWidth + pillPadding * 2, 18, 4);
+                } else {
+                    ctx.rect(pillX, pillY, textWidth + pillPadding * 2, 18);
+                }
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(label, pillX + pillPadding, pillY + 13);
+            }
+        });
+
+        // 3. Encabezado en la Imagen Canvas
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.fillRect(20, 20, 520, 50);
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(20, 20, 520, 50);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px Outfit, Arial, sans-serif';
+        ctx.fillText('MAPA DE AFECTACIÓN DE INFRAESTRUCTURA VIAL', 35, 42);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '11px Outfit, Arial, sans-serif';
+        ctx.fillText('DEPARTAMENTO DE ANTIOQUIA - MONITOR SISMOINFRA', 35, 58);
+
+        // 4. Leyenda de la Imagen Canvas
+        const legX = canvas.width - 260;
+        const legY = canvas.height - 90;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.fillRect(legX, legY, 240, 70);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(legX, legY, 240, 70);
+
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath(); ctx.arc(legX + 20, legY + 25, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.font = '11px Outfit, Arial, sans-serif';
+        ctx.fillText('Municipio con Daño Vial', legX + 35, legY + 29);
+
+        ctx.fillStyle = 'rgba(30, 41, 59, 0.9)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fillRect(legX + 14, legY + 45, 12, 12);
+        ctx.strokeRect(legX + 14, legY + 45, 12, 12);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('Límite Municipal Antioquia', legX + 35, legY + 55);
+
+        return canvas.toDataURL('image/png');
+    }
+
+    // Exportar el reporte en PDF de Infraestructura Vial
+    function exportVialPdfReport() {
+        // Filtrar reportes que corresponden exclusivamente a Infraestructura Vial
+        const vialReports = state.reports.filter(r => isVialType(r.Tipo_Afectacion));
+
+        if (vialReports.length === 0) {
+            alert('No se registran afectaciones de Infraestructura Vial en la base de datos actual.');
+            return;
+        }
+
+        // Verificar que jsPDF esté disponible
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            alert('La librería de generación de PDF aún se está cargando. Por favor intenta de nuevo en unos segundos.');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+        const timeStr = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+        // --- ENCABEZADO Y HEADER OFICIAL ---
+        doc.setFillColor(15, 23, 42); // #0f172a
+        doc.rect(0, 0, 210, 36, 'F');
+
+        // Banda roja de acento
+        doc.setFillColor(239, 68, 68); // #ef4444
+        doc.rect(0, 36, 210, 3, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16);
+        doc.setTextColor(255, 255, 255);
+        doc.text('REPORTE DE AFECTACIÓN - INFRAESTRUCTURA VIAL', 14, 16);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(203, 213, 225);
+        doc.text('SismoInfra Antioquia • Sistema de Monitoreo Geográfico y Evaluaciones de Emergencia', 14, 23);
+
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Fecha de emisión: ${dateStr} - ${timeStr} | Municipios afectados: ${vialReports.length}`, 14, 30);
+
+        // --- SECCIÓN 1: MAPA GENERAL EN CANVAS ---
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(15, 23, 42);
+        doc.text('1. Mapa General de Afectaciones Viales en Antioquia', 14, 46);
+
+        // Generar mapa en Canvas y agregar la imagen al PDF
+        const mapCanvasData = generateAntioquiaCanvasMap(vialReports);
+        if (mapCanvasData) {
+            doc.addImage(mapCanvasData, 'PNG', 14, 49, 182, 115);
+        }
+
+        // --- SECCIÓN 2: LISTADO DE AFECTACIONES VIALES ---
+        const tableStartY = 172;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(15, 23, 42);
+        doc.text('2. Listado Detallado de Afectaciones a la Red Vial', 14, tableStartY);
+
+        const tableBody = vialReports.map((r, idx) => [
+            (idx + 1).toString(),
+            r.Municipio || '-',
+            r.Subregion || '-',
+            r.Red_Vial || 'Red Vial',
+            r.Descripcion || 'Sin descripción disponible'
+        ]);
+
+        doc.autoTable({
+            startY: tableStartY + 4,
+            head: [['N°', 'Municipio', 'Subregión', 'Red Vial', 'Descripción del Impacto']],
+            body: tableBody,
+            theme: 'grid',
+            headStyles: {
+                fillColor: [239, 68, 68],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 8,
+                halign: 'center'
+            },
+            bodyStyles: {
+                fontSize: 7.5,
+                cellPadding: 2.5,
+                textColor: [30, 41, 59]
+            },
+            columnStyles: {
+                0: { cellWidth: 10, halign: 'center' },
+                1: { cellWidth: 35, fontStyle: 'bold' },
+                2: { cellWidth: 30 },
+                3: { cellWidth: 35 },
+                4: { cellWidth: 'auto' }
+            },
+            alternateRowStyles: {
+                fillColor: [248, 250, 252]
+            }
+        });
+
+        // Pie de página en todas las páginas
+        const pageCount = doc.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8);
+            doc.setTextColor(148, 163, 184);
+            doc.text(`SismoInfra Antioquia - Monitoreo Oficial de Emergencias Viales`, 14, 290);
+            doc.text(`Página ${i} de ${pageCount}`, 196, 290, { align: 'right' });
+        }
+
+        // Descargar PDF
+        const fileName = `Reporte_Infraestructura_Vial_Antioquia_${now.toISOString().slice(0,10)}.pdf`;
+        doc.save(fileName);
     }
 
     /* ==========================================================================

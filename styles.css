@@ -674,9 +674,13 @@ body {
 /* Floating Controls */
 .map-controls-floating {
     position: absolute;
-    top: 80px;
-    left: 10px;
+    top: 20px;
+    left: 20px;
     z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
 }
 .btn-floating {
     width: 34px;
@@ -694,6 +698,42 @@ body {
 }
 .btn-floating:hover {
     background: rgba(255, 255, 255, 0.1);
+}
+.btn-floating-pdf {
+    width: auto;
+    height: 36px;
+    padding: 0 12px;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(217, 119, 6, 0.95));
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+    font-size: 0.78rem;
+    font-weight: 600;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 8px;
+}
+.btn-floating-pdf:hover {
+    background: linear-gradient(135deg, #ef4444, #ea580c);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+}
+.btn-floating-pdf:active {
+    transform: translateY(0);
+}
+.btn-floating-label {
+    white-space: nowrap;
+}
+@media (max-width: 768px) {
+    .btn-floating-label {
+        display: none;
+    }
+    .btn-floating-pdf {
+        width: 36px;
+        padding: 0;
+        justify-content: center;
+    }
 }
 
 /* Legend */

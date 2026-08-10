@@ -168,6 +168,10 @@
                 <button class="btn-floating" id="reset-map-btn" title="Restablecer vista de Antioquia">
                     <i data-lucide="map-pin"></i>
                 </button>
+                <button class="btn-floating btn-floating-pdf" id="export-pdf-btn" title="Exportar Reporte PDF de Infraestructura Vial">
+                    <i data-lucide="file-down"></i>
+                    <span class="btn-floating-label">Exportar PDF Vial</span>
+                </button>
             </div>
 
             <!-- Floating Info Card (Shows details when a municipality is clicked) -->
@@ -218,6 +222,10 @@
     
     <!-- PapaParse for loading/parsing CSV uploads -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" referrerpolicy="no-referrer"></script>
+    
+    <!-- jsPDF & jsPDF-AutoTable for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     
     <!-- App Logic -->
     <script src="app.js"></script>
