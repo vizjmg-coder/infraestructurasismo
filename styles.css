@@ -1038,3 +1038,23 @@ body {
     margin-left: 0.35rem;
     display: inline-block;
 }
+
+.card-red-vial-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.15);
+    border: 1px solid rgba(96, 165, 250, 0.35);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+}
+
+.info-vial-type-badge {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+}

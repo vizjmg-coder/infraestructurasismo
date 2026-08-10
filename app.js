@@ -67,6 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
         infoMunicipality: document.getElementById('info-municipality-text'),
         infoType: document.getElementById('info-type-text'),
         infoGravity: document.getElementById('info-gravity-text'),
+        infoRedVialRow: document.getElementById('info-red-vial-row'),
+        infoRedVialText: document.getElementById('info-red-vial-text'),
+        infoUbicacionRow: document.getElementById('info-ubicacion-row'),
+        infoUbicacionText: document.getElementById('info-ubicacion-text'),
         infoDesc: document.getElementById('info-desc-text'),
         closeInfoCardBtn: document.getElementById('close-info-card-btn'),
         zoomToMpioBtn: document.getElementById('zoom-to-mpio-btn'),
@@ -120,6 +124,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 normalized.Gravedad = val.charAt(0).toUpperCase() + val.slice(1);
             } else if (normKey === 'DESCRIPCION' || normKey === 'DESC' || normKey === 'DETALLE') {
                 normalized.Descripcion = row[key].trim();
+            } else if (normKey === 'RED_VIAL' || normKey === 'RED VIAL') {
+                normalized.Red_Vial = row[key].trim();
+            } else if (normKey === 'UBICACION' || normKey === 'SECTOR') {
+                normalized.Ubicacion = row[key].trim();
             }
         }
         
@@ -512,7 +520,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const matchSearch = !normSearch || 
                 normalizeName(report.Municipio).includes(normSearch) || 
                 normalizeName(report.Subregion).includes(normSearch) ||
-                normalizeName(report.Tipo_Afectacion).includes(normSearch);
+                normalizeName(report.Tipo_Afectacion).includes(normSearch) ||
+                normalizeName(report.Red_Vial || '').includes(normSearch) ||
+                normalizeName(report.Ubicacion || '').includes(normSearch);
 
             return matchSubregion && matchGravity && matchDamageType && matchSearch;
         });
@@ -621,10 +631,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="card-title">${report.Municipio}</span>
                     <div class="card-badges-wrapper">
                         ${isVial ? '<span class="card-vial-badge">⚡ PRIORIDAD VIAL</span>' : ''}
+                        ${report.Red_Vial ? `<span class="card-red-vial-badge">${report.Red_Vial}</span>` : ''}
                         <span class="card-badge">${report.Gravedad}</span>
                     </div>
                 </div>
-                <div class="card-subregion">${report.Subregion}</div>
+                <div class="card-subregion">${report.Subregion}${report.Ubicacion ? ` • 📍 ${report.Ubicacion}` : ''}</div>
                 <div class="card-desc">${report.Tipo_Afectacion} - ${report.Descripcion}</div>
             `;
 
@@ -804,6 +815,25 @@ document.addEventListener('DOMContentLoaded', () => {
             dom.infoGravity.innerText = report.Gravedad;
             dom.infoDesc.innerText = report.Descripcion;
             
+            // Mostrar u ocultar filas para Red Vial y Ubicación
+            if (dom.infoRedVialRow) {
+                if (report.Red_Vial) {
+                    dom.infoRedVialText.innerText = report.Red_Vial;
+                    dom.infoRedVialRow.style.display = 'flex';
+                } else {
+                    dom.infoRedVialRow.style.display = 'none';
+                }
+            }
+
+            if (dom.infoUbicacionRow) {
+                if (report.Ubicacion) {
+                    dom.infoUbicacionText.innerText = report.Ubicacion;
+                    dom.infoUbicacionRow.style.display = 'flex';
+                } else {
+                    dom.infoUbicacionRow.style.display = 'none';
+                }
+            }
+            
             // Estilo de la insignia de gravedad en la tarjeta
             dom.infoGravity.style.backgroundColor = `rgba(${getGravityRgb(report.Gravedad)}, 0.15)`;
             dom.infoGravity.style.color = getGravityColor(report.Gravedad);
@@ -811,6 +841,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             dom.infoCard.classList.remove('hidden');
         } else {
+            if (dom.infoRedVialRow) dom.infoRedVialRow.style.display = 'none';
+            if (dom.infoUbicacionRow) dom.infoUbicacionRow.style.display = 'none';
             // Municipio seleccionado no tiene reportes en el sismo
             const rawFeature = state.geojsonRaw.features.find(f => normalizeName(f.properties.MPIO_NOMBR) === normalized);
             const subregion = rawFeature ? rawFeature.properties.SUBREGION : 'Desconocida';
