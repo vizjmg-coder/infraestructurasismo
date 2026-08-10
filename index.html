@@ -77,32 +77,26 @@
 
             <!-- Statistics Cards -->
             <section class="stats-section">
-                <div class="stat-card glass-panel">
+                <div class="stat-card stat-card-large glass-panel">
                     <div class="stat-icon-wrapper red">
-                        <i data-lucide="alert-triangle"></i>
+                        <i data-lucide="milestone"></i>
                     </div>
                     <div class="stat-info">
                         <span class="stat-value" id="stat-affected-count">0</span>
                         <span class="stat-label">Municipios Afectados</span>
+                        <span class="stat-sublabel">por Infraestructura Vial</span>
                     </div>
                 </div>
-                <div class="stat-card glass-panel priority-stat">
-                    <div class="stat-icon-wrapper amber">
-                        <i data-lucide="milestone"></i>
-                    </div>
-                    <div class="stat-info">
-                        <span class="stat-value" id="stat-vial-count">0</span>
-                        <span class="stat-label">Infraest. Vial</span>
-                    </div>
+            </section>
+
+            <!-- Tarjetas Tipo Red Vial -->
+            <section class="red-vial-types-section">
+                <div class="red-vial-types-header">
+                    <i data-lucide="road" class="red-vial-header-icon"></i>
+                    <span>Tipo de Elemento Vial</span>
                 </div>
-                <div class="stat-card glass-panel">
-                    <div class="stat-icon-wrapper blue">
-                        <i data-lucide="shield-alert"></i>
-                    </div>
-                    <div class="stat-info">
-                        <span class="stat-value" id="stat-high-gravity">0</span>
-                        <span class="stat-label">Gravedad Alta</span>
-                    </div>
+                <div class="red-vial-types-grid" id="red-vial-types-grid">
+                    <div class="no-data">Sin datos cargados</div>
                 </div>
             </section>
 

@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
         infoDesc: document.getElementById('info-desc-text'),
         closeInfoCardBtn: document.getElementById('close-info-card-btn'),
         zoomToMpioBtn: document.getElementById('zoom-to-mpio-btn'),
+        redVialTypesGrid: document.getElementById('red-vial-types-grid'),
         resetMapBtn: document.getElementById('reset-map-btn'),
         exportPdfBtn: document.getElementById('export-pdf-btn')
     };
@@ -127,6 +128,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 normalized.Descripcion = row[key].trim();
             } else if (normKey === 'RED_VIAL' || normKey === 'RED VIAL') {
                 normalized.Red_Vial = row[key].trim();
+            } else if (normKey === 'TIPO_RED_VIAL' || normKey === 'TIPO RED VIAL' || normKey === 'TIPO ELEMENTO' || normKey === 'ELEMENTO_VIAL' || normKey === 'ELEMENTO VIAL') {
+                normalized.Tipo_Red_Vial = row[key].trim();
             } else if (normKey === 'UBICACION' || normKey === 'SECTOR') {
                 normalized.Ubicacion = row[key].trim();
             }
@@ -460,12 +463,12 @@ document.addEventListener('DOMContentLoaded', () => {
             state.reports = cleanReports;
             state.selectedMpio = null; // Reiniciar selección
             
-            // Actualizar filtros
+            // Actualizar filtros: al cargar, mostrar solo Infraestructura Vial
             dom.subregionFilter.value = 'all';
             state.activeFilters.subregion = 'all';
             state.activeFilters.gravity = 'all';
             state.activeFilters.search = '';
-            state.activeFilters.damageType = 'all';
+            state.activeFilters.damageType = 'Infraestructura Vial';
             dom.searchInput.value = '';
             dom.clearSearchBtn.style.display = 'none';
             dom.gravityTags.forEach(tag => {
@@ -517,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderMarkers();
         renderReportsList();
         renderDamageTypeCards();
+        renderRedVialTypeCards();
         
         // Restablecer estilos de todas las capas municipales según los filtros actuales
         Object.keys(state.layerMap).forEach(normalized => {
@@ -528,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Filtrar los datos en base a los inputs del usuario
     function applyFilters() {
-        const { subregion, gravity, search, damageType } = state.activeFilters;
+        const { subregion, gravity, search, damageType, tipoRedVial } = state.activeFilters;
         
         state.filteredReports = state.reports.filter(report => {
             // Filtro por subregión
@@ -542,6 +546,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Filtro por tipo de afectación (tarjetas interactivas)
             const matchDamageType = damageType === 'all' || 
                 normalizeName(report.Tipo_Afectacion) === normalizeName(damageType);
+
+            // Filtro por tipo de elemento red vial
+            const matchTipoRedVial = !tipoRedVial || tipoRedVial === 'all' ||
+                normalizeName(report.Tipo_Red_Vial || '') === tipoRedVial;
                 
             // Filtro por búsqueda de texto
             const normSearch = normalizeName(search);
@@ -552,22 +560,102 @@ document.addEventListener('DOMContentLoaded', () => {
                 normalizeName(report.Red_Vial || '').includes(normSearch) ||
                 normalizeName(report.Ubicacion || '').includes(normSearch);
 
-            return matchSubregion && matchGravity && matchDamageType && matchSearch;
+            return matchSubregion && matchGravity && matchDamageType && matchTipoRedVial && matchSearch;
         });
     }
 
     // Calcular y renderizar estadísticas en el panel lateral
     function calculateStatistics() {
-        const uniqueAffected = new Set(state.filteredReports.map(r => normalizeName(r.Municipio)));
-        if (dom.statAffectedCount) dom.statAffectedCount.innerText = uniqueAffected.size;
+        // Municipios únicos afectados por Infraestructura Vial (siempre desde el total de reportes)
+        const vialReportsAll = state.reports.filter(r => isVialType(r.Tipo_Afectacion));
+        const uniqueVialMpios = new Set(vialReportsAll.map(r => normalizeName(r.Municipio)));
+        if (dom.statAffectedCount) dom.statAffectedCount.innerText = uniqueVialMpios.size;
+    }
 
-        // Contar afectaciones prioritarias de Infraestructura Vial
-        const vialReports = state.filteredReports.filter(r => isVialType(r.Tipo_Afectacion));
-        if (dom.statVialCount) dom.statVialCount.innerText = vialReports.length;
+    // Renderizar tarjetas dinámicas por Tipo de Red Vial (Puente, Pavimento Flexible, etc.)
+    function renderRedVialTypeCards() {
+        if (!dom.redVialTypesGrid) return;
+        dom.redVialTypesGrid.innerHTML = '';
 
-        // Gravedad Alta
-        const highGravity = state.filteredReports.filter(r => r.Gravedad === 'Alta');
-        if (dom.statHighGravity) dom.statHighGravity.innerText = highGravity.length;
+        // Solo reportes de Infraestructura Vial que tengan Tipo_Red_Vial
+        const vialReports = state.reports.filter(r => isVialType(r.Tipo_Afectacion) && r.Tipo_Red_Vial && r.Tipo_Red_Vial.trim() !== '');
+
+        if (vialReports.length === 0) {
+            dom.redVialTypesGrid.innerHTML = '<div class="no-data">Sin elementos viales registrados</div>';
+            return;
+        }
+
+        // Contar por tipo de elemento vial
+        const counts = {};
+        vialReports.forEach(r => {
+            const tipo = r.Tipo_Red_Vial.trim();
+            counts[tipo] = (counts[tipo] || 0) + 1;
+        });
+
+        // Ordenar por cantidad descendente
+        const tipos = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+
+        // Mapa de iconos por tipo de elemento
+        const iconMap = {
+            'PUENTE': 'git-branch',
+            'BRIDGE': 'git-branch',
+            'PAVIMENTO': 'layers',
+            'ASFALTO': 'layers',
+            'CARRETERA': 'milestone',
+            'VIA': 'milestone',
+            'TUNEL': 'circle-dashed',
+            'MURO': 'square',
+            'TALUD': 'triangle',
+            'ALCANTARILLA': 'droplets',
+            'DRENAJE': 'droplets',
+            'VIADUCTO': 'git-branch',
+        };
+
+        function getIconForTipo(tipo) {
+            const norm = normalizeName(tipo);
+            for (const key in iconMap) {
+                if (norm.includes(key)) return iconMap[key];
+            }
+            return 'construction';
+        }
+
+        // Filtro activo de tipo red vial
+        const activeRedVialFilter = state.activeFilters.tipoRedVial || 'all';
+
+        tipos.forEach(tipo => {
+            const count = counts[tipo];
+            const icon = getIconForTipo(tipo);
+            const isActive = activeRedVialFilter === normalizeName(tipo);
+
+            const card = document.createElement('div');
+            card.className = `red-vial-type-card ${isActive ? 'active' : ''}`;
+
+            card.innerHTML = `
+                <div class="red-vial-type-icon-wrapper">
+                    <i data-lucide="${icon}"></i>
+                </div>
+                <div class="red-vial-type-info">
+                    <span class="red-vial-type-count">${count}</span>
+                    <span class="red-vial-type-label" title="${tipo}">${tipo.toLowerCase()}</span>
+                </div>
+            `;
+
+            card.addEventListener('click', () => {
+                if (isActive) {
+                    state.activeFilters.tipoRedVial = 'all';
+                    // Volver al filtro de Infraestructura Vial en lugar de all
+                    state.activeFilters.damageType = 'Infraestructura Vial';
+                } else {
+                    state.activeFilters.tipoRedVial = normalizeName(tipo);
+                    state.activeFilters.damageType = 'Infraestructura Vial';
+                }
+                updateDashboard();
+            });
+
+            dom.redVialTypesGrid.appendChild(card);
+        });
+
+        if (window.lucide) window.lucide.createIcons();
     }
 
     // Renderizar los marcadores de alerta en el centro geográfico de los municipios afectados
@@ -586,12 +674,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isVial = isVialType(report.Tipo_Afectacion);
                 const redVialLabel = report.Red_Vial ? report.Red_Vial : 'VÍA';
                 
-                // HTML Personalizado para el círculo de alerta pulsante (con tipo de Red Vial)
+                // HTML Personalizado para el círculo de alerta pulsante (con tipo de Red Vial y municipio)
                 const markerHtml = `
                     <div class="pulse-marker-wrapper ${isVial ? 'priority-vial-marker' : ''}" style="--marker-color: ${color}">
                         <div class="pulse-ring"></div>
                         <div class="pulse-dot"></div>
-                        ${isVial ? `<span class="vial-marker-indicator" title="Afectación en ${redVialLabel}">⚡ ${redVialLabel}</span>` : ''}
+                        ${isVial ? `<span class="vial-marker-indicator" title="Afectación en ${redVialLabel}">${redVialLabel}<br><span class="vial-marker-mpio">${report.Municipio}</span></span>` : ''}
                     </div>
                 `;
                 
@@ -811,19 +899,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             layer.bringToFront();
 
-            // Intercambiar tooltip a permanente y centrado con el nombre resaltado
-            const tooltipColor = report ? getGravityColor(report.Gravedad) : '#3b82f6';
-            const rawFeature = state.geojsonRaw.features.find(f => normalizeName(f.properties.MPIO_NOMBR) === normalized);
-            const mpioName = rawFeature ? rawFeature.properties.MPIO_NOMBR : normalized;
-            const tooltipContent = `<div class="selected-tooltip-inner" style="border-color: ${tooltipColor}">${report ? report.Municipio : mpioName}</div>`;
-            
+            // Al seleccionar, ocultar el tooltip hover y NO mostrar tooltip permanente
+            // (la info card flotante ya muestra toda la información)
             layer.unbindTooltip();
-            layer.bindTooltip(tooltipContent, {
-                permanent: true,
-                direction: 'top',
-                offset: [0, -15],
-                className: 'selected-mpio-tooltip-wrapper'
-            }).openTooltip();
 
             if (flyTo) {
                 // Volar al municipio seleccionado

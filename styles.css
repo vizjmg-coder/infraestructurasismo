@@ -269,7 +269,7 @@ body {
 .stats-section {
     padding: 1.25rem;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
     border-bottom: 1px solid var(--border-color);
 }
@@ -280,6 +280,33 @@ body {
     align-items: flex-start;
     gap: 0.5rem;
     border-radius: 12px;
+}
+.stat-card-large {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.05) !important;
+}
+.stat-card-large .stat-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+.stat-card-large .stat-icon-wrapper i {
+    width: 22px;
+    height: 22px;
+}
+.stat-card-large .stat-value {
+    font-size: 2rem;
+}
+.stat-card-large .stat-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
 }
 .stat-icon-wrapper {
     width: 28px;
@@ -305,6 +332,10 @@ body {
     background: rgba(59, 130, 246, 0.15);
     color: var(--accent-blue);
 }
+.stat-icon-wrapper.amber {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
 .stat-value {
     font-size: 1.25rem;
     font-weight: 700;
@@ -313,6 +344,95 @@ body {
 .stat-label {
     font-size: 0.68rem;
     color: var(--text-secondary);
+}
+.stat-sublabel {
+    font-size: 0.62rem;
+    color: var(--accent-red);
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+/* Red Vial Types Section */
+.red-vial-types-section {
+    padding: 0.85rem 1.25rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.red-vial-types-header {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 0.65rem;
+}
+.red-vial-header-icon {
+    width: 14px;
+    height: 14px;
+    color: #f59e0b;
+}
+.red-vial-types-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+.red-vial-type-card {
+    background: rgba(245, 158, 11, 0.06);
+    border: 1px solid rgba(245, 158, 11, 0.18);
+    border-radius: 10px;
+    padding: 0.6rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+.red-vial-type-card:hover {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.4);
+    transform: translateY(-1px);
+}
+.red-vial-type-card.active {
+    background: rgba(245, 158, 11, 0.18);
+    border-color: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+}
+.red-vial-type-icon-wrapper {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: rgba(245, 158, 11, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #f59e0b;
+}
+.red-vial-type-icon-wrapper i {
+    width: 14px;
+    height: 14px;
+}
+.red-vial-type-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+.red-vial-type-count {
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #f59e0b;
+}
+.red-vial-type-label {
+    font-size: 0.62rem;
+    color: var(--text-secondary);
+    text-transform: capitalize;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Filters Section */
