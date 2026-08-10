@@ -698,6 +698,7 @@ body {
 
 /* Legend */
 .map-legend {
+    display: none !important;
     position: absolute;
     bottom: 24px;
     right: 24px;
