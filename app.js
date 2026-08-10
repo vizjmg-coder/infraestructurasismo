@@ -142,10 +142,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* ==========================================================================
-       Inicialización del Mapa (Leaflet)
+       Almacenamiento Local de GeoJSON (IndexedDB para Carga Instantánea)
+       ========================================================================== */
+    function openGeoDatabase() {
+        return new Promise((resolve) => {
+            if (!window.indexedDB) return resolve(null);
+            const request = indexedDB.open('SismoInfraGeoCacheDB', 1);
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains('geojsonStore')) {
+                    db.createObjectStore('geojsonStore');
+                }
+            };
+            request.onsuccess = (e) => resolve(e.target.result);
+            request.onerror = () => resolve(null);
+        });
+    }
+
+    async function getCachedGeoJSON() {
+        try {
+            const db = await openGeoDatabase();
+            if (!db) return null;
+            return new Promise((resolve) => {
+                const tx = db.transaction('geojsonStore', 'readonly');
+                const store = tx.objectStore('geojsonStore');
+                const req = store.get('antioquia_geojson');
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror = () => resolve(null);
+            });
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async function saveCachedGeoJSON(data) {
+        try {
+            const db = await openGeoDatabase();
+            if (!db) return;
+            const tx = db.transaction('geojsonStore', 'readwrite');
+            const store = tx.objectStore('geojsonStore');
+            store.put(data, 'antioquia_geojson');
+        } catch (e) {
+            console.warn('No se pudo cachear GeoJSON en IndexedDB:', e);
+        }
+    }
+
+    /* ==========================================================================
+       Inicialización del Mapa (Leaflet con Renderizador Canvas Ultra-rápido)
        ========================================================================== */
     function initMap() {
         state.leafletMap = L.map('map', {
+            preferCanvas: true, // Renderizado ultra-rápido en Canvas HTML5
             zoomControl: false,
             minZoom: 6,
             maxZoom: 13,
@@ -159,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             maxZoom: 20
         }).addTo(state.leafletMap);
 
-        // Reposicionar controles de zoom abajo a la derecha para no obstruir los paneles
+        // Reposicionar controles de zoom abajo a la derecha
         L.control.zoom({
             position: 'bottomright'
         }).addTo(state.leafletMap);
@@ -169,65 +216,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* ==========================================================================
-       Carga Asíncrona de Municipios (GeoJSON con Barra de Progreso)
+       Carga Asíncrona de Municipios (Instantánea mediante Cache IndexedDB)
        ========================================================================== */
     async function loadGeoJson() {
         try {
-            dom.loadingStatus.innerText = 'Buscando cobertura municipal...';
-            
-            // Usamos ReadableStream para poder rastrear el progreso de la descarga del GeoJSON (22.4 MB)
+            // 1. Intentar cargar instantáneamente desde IndexedDB (Cache local)
+            const cachedData = await getCachedGeoJSON();
+            if (cachedData) {
+                console.log('⚡ Coordenadas municipales cargadas instantáneamente desde IndexedDB.');
+                state.geojsonRaw = cachedData;
+                renderGeoJsonLayer();
+                loadDepartmentOutline();
+                loadInitialMockData();
+                return;
+            }
+
+            // 2. Si es la primera vez, cargar en segundo plano sin bloquear la UI
             const response = await fetch('Municipios.geojson');
             if (!response.ok) throw new Error('No se pudo cargar Municipios.geojson');
             
-            const reader = response.body.getReader();
-            
-            // Si el servidor no envía Content-Length, aproximamos con el tamaño conocido (22.4MB)
-            const contentLength = +response.headers.get('Content-Length') || 22420740;
-            let receivedLength = 0;
-            let chunks = [];
-            
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                
-                chunks.push(value);
-                receivedLength += value.length;
-                
-                const percent = Math.min(Math.round((receivedLength / contentLength) * 100), 100);
-                dom.progressBar.style.width = `${percent}%`;
-                dom.loadingStatus.innerText = `Descargando mapa departamental: ${percent}%`;
-            }
-            
-            dom.loadingStatus.innerText = 'Procesando coordenadas geográficas...';
-            
-            // Concatenar todos los chunks en un array único
-            let chunksAll = new Uint8Array(receivedLength);
-            let position = 0;
-            for (let chunk of chunks) {
-                chunksAll.set(chunk, position);
-                position += chunk.length;
-            }
-            
-            // Decodificar y parsear a JSON
-            let decodedText = new TextDecoder("utf-8").decode(chunksAll);
-            state.geojsonRaw = JSON.parse(decodedText);
+            const data = await response.json();
+            state.geojsonRaw = data;
             
             renderGeoJsonLayer();
-            
-            // Cargar y resaltar el borde completo del departamento de Antioquia
-            await loadDepartmentOutline();
-            
-            // Finalizar carga e iniciar carga de datos por defecto
-            dom.progressBar.style.width = '100%';
-            setTimeout(() => {
-                dom.loadingOverlay.classList.add('hidden');
-                loadInitialMockData();
-            }, 600);
+            loadDepartmentOutline();
+            loadInitialMockData();
+
+            // 3. Guardar en IndexedDB para aperturas instantáneas futuras
+            saveCachedGeoJSON(data);
             
         } catch (error) {
             console.error('Error cargando GeoJSON:', error);
-            dom.loadingStatus.innerHTML = `<span style="color: var(--accent-red)">Error: No se pudo cargar el mapa. Asegúrate de que Municipios.geojson esté en la misma carpeta.</span>`;
-            dom.progressBar.style.backgroundColor = 'var(--accent-red)';
+            loadInitialMockData();
         }
     }
 
