@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SismoInfra Antioquia - Monitor de Afectaciones de Infraestructura</title>
+    
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loader-content">
+            <div class="spinner"></div>
+            <h2>SismoInfra Antioquia</h2>
+            <p id="loading-status">Inicializando base de datos geográfica...</p>
+            <div class="progress-bar-container">
+                <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+            </div>
+            <span class="loading-subtext">Cargando límites municipales (22.4 MB)</span>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <div id="app-container" class="app-container">
+        
+        <!-- Sidebar Panel -->
+        <aside class="sidebar glass-panel">
+            <!-- Sidebar Header -->
+            <header class="sidebar-header">
+                <div class="logo-area">
+                    <i data-lucide="activity" class="logo-icon animate-pulse"></i>
+                    <div>
+                        <h1>SismoInfra</h1>
+                        <span class="tagline">Antioquia</span>
+                    </div>
+                </div>
+                <div class="status-indicator">
+                    <span class="pulse-dot green"></span>
+                    <span class="status-text">Listo</span>
+                </div>
+            </header>
+
+            <!-- Damage Types Section -->
+            <section class="damage-types-section">
+                <div class="section-title">
+                    <h3>Afectaciones por Tipo</h3>
+                    <a href="https://docs.google.com/spreadsheets/d/1ETyMqVB029hJGHpnuHNE-eTKYoO1oFIroy4rF_UHj2I/edit?usp=sharing" target="_blank" class="template-link" style="color: var(--accent-green); text-decoration: none; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                        <i data-lucide="external-link" class="icon-sm"></i> Google Sheet
+                    </a>
+                </div>
+                <div class="damage-types-grid" id="damage-types-grid">
+                    <!-- Dynamic cards will go here -->
+                    <div class="no-data">Cargando tipos...</div>
+                </div>
+            </section>
+
+            <!-- Statistics Cards -->
+            <section class="stats-section">
+                <div class="stat-card glass-panel">
+                    <div class="stat-icon-wrapper red">
+                        <i data-lucide="alert-triangle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="stat-affected-count">0</span>
+                        <span class="stat-label">Municipios Afectados</span>
+                    </div>
+                </div>
+                <div class="stat-card glass-panel">
+                    <div class="stat-icon-wrapper orange">
+                        <i data-lucide="home"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="stat-homes-count">0</span>
+                        <span class="stat-label">Reportes de Vivienda</span>
+                    </div>
+                </div>
+                <div class="stat-card glass-panel">
+                    <div class="stat-icon-wrapper blue">
+                        <i data-lucide="shield-alert"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="stat-high-gravity">0</span>
+                        <span class="stat-label">Gravedad Alta</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search and Filter Panel -->
+            <section class="filters-section">
+                <div class="search-box">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Buscar municipio...">
+                    <button id="clear-search-btn" class="clear-btn" style="display: none;">
+                        <i data-lucide="x" class="icon-sm"></i>
+                    </button>
+                </div>
+
+                <div class="filter-controls">
+                    <div class="filter-group">
+                        <label for="subregion-filter">Subregión</label>
+                        <select id="subregion-filter" class="glass-select">
+                            <option value="all">Todas las Subregiones</option>
+                            <option value="Bajo Cauca">Bajo Cauca</option>
+                            <option value="Magdalena Medio">Magdalena Medio</option>
+                            <option value="Nordeste">Nordeste</option>
+                            <option value="Norte">Norte</option>
+                            <option value="Occidente">Occidente</option>
+                            <option value="Oriente">Oriente</option>
+                            <option value="Suroeste">Suroeste</option>
+                            <option value="Urabá">Urabá</option>
+                            <option value="Valle de Aburrá">Valle de Aburrá</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Gravedad del Daño</label>
+                        <div class="gravity-tags">
+                            <button class="gravity-tag active" data-gravity="all">Todos</button>
+                            <button class="gravity-tag" data-gravity="Alta" style="--tag-color: #ef4444;">Alta</button>
+                            <button class="gravity-tag" data-gravity="Media" style="--tag-color: #f97316;">Media</button>
+                            <button class="gravity-tag" data-gravity="Baja" style="--tag-color: #3b82f6;">Baja</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reports List -->
+            <section class="reports-section">
+                <div class="section-title">
+                    <h3>Listado de Afectaciones</h3>
+                    <span class="badge" id="visible-reports-count">0</span>
+                </div>
+                <div id="reports-list" class="reports-list scrollbar-custom">
+                    <!-- Dynamic report cards go here -->
+                    <div class="no-data">Cargando registros...</div>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Map Container -->
+        <main class="map-container">
+            <!-- Leaflet Map -->
+            <div id="map"></div>
+
+            <!-- Floating Map Controls -->
+            <div class="map-controls-floating">
+                <button class="btn-floating" id="reset-map-btn" title="Restablecer vista de Antioquia">
+                    <i data-lucide="map-pin"></i>
+                </button>
+            </div>
+
+            <!-- Floating Info Card (Shows details when a municipality is clicked) -->
+            <div id="info-card" class="info-card glass-panel hidden">
+                <button id="close-info-card-btn" class="close-card-btn">
+                    <i data-lucide="x"></i>
+                </button>
+                <div class="info-card-header">
+                    <span class="info-subregion" id="info-subregion-text">Suroeste</span>
+                    <h2 class="info-municipality" id="info-municipality-text">Támesis</h2>
+                </div>
+                <div class="info-card-body">
+                    <div class="info-row">
+                        <span class="info-label">Tipo de Afectación:</span>
+                        <span class="info-value highlight" id="info-type-text">Viviendas Averiadas</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Nivel de Alerta / Gravedad:</span>
+                        <span class="gravity-badge" id="info-gravity-text">Alta</span>
+                    </div>
+                    <div class="info-desc-box">
+                        <span class="info-label">Descripción del Impacto:</span>
+                        <p class="info-desc-text" id="info-desc-text">Ejemplo de la información a mostrar sobre el municipio.</p>
+                    </div>
+                </div>
+                <div class="info-card-footer">
+                    <button class="btn btn-primary btn-sm btn-block" id="zoom-to-mpio-btn">Alinear Vista</button>
+                </div>
+            </div>
+
+            <!-- Elegant Map Legend -->
+            <div class="map-legend glass-panel">
+                <h4>Simbología</h4>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <span class="legend-circle pulse-ring-example" style="background: #ef4444; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.4);"></span>
+                        <span>Alerta Alta (Daño Severo)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-circle pulse-ring-example" style="background: #f97316; box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.4);"></span>
+                        <span>Alerta Media (Daño Moderado)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-circle pulse-ring-example" style="background: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4);"></span>
+                        <span>Alerta Baja (Daño Leve)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-line"></span>
+                        <span>Límite Municipal</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Lucide Icons for modern SVGs -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- PapaParse for loading/parsing CSV uploads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" referrerpolicy="no-referrer"></script>
+    
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
