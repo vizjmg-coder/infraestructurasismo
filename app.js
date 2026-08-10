@@ -651,7 +651,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="card-header-row">
                     <span class="card-title">${report.Municipio}</span>
                     <div class="card-badges-wrapper">
-                        ${isVial ? '<span class="card-vial-badge">⚡ PRIORIDAD VIAL</span>' : ''}
                         ${report.Red_Vial ? `<span class="card-red-vial-badge">${report.Red_Vial}</span>` : ''}
                         <span class="card-badge">${report.Gravedad}</span>
                     </div>
@@ -749,7 +748,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="damage-type-body">
                     <span class="damage-type-label">${type.toLowerCase()}</span>
-                    ${isVial ? '<span class="type-priority-tag">PRIORITARIO</span>' : ''}
                 </div>
             `;
 
@@ -823,15 +821,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Mostrar u ocultar la tarjeta de información flotante
         if (report) {
-            const isVial = isVialType(report.Tipo_Afectacion);
             dom.infoSubregion.innerText = report.Subregion;
             dom.infoMunicipality.innerText = report.Municipio;
-            
-            if (isVial) {
-                dom.infoType.innerHTML = `${report.Tipo_Afectacion} <span class="info-vial-priority-tag">⚡ PRIORIDAD VIAL</span>`;
-            } else {
-                dom.infoType.innerText = report.Tipo_Afectacion;
-            }
+            dom.infoType.innerText = report.Tipo_Afectacion;
             
             dom.infoGravity.innerText = report.Gravedad;
             dom.infoDesc.innerText = report.Descripcion;
