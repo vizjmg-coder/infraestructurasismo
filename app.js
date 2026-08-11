@@ -18,7 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
             subregion: 'all',
             gravity: 'all',
             search: '',
-            damageType: 'all' // Filtro dinámico por tarjeta de tipo de afectación
+            damageType: 'all',        // Filtro dinámico por tarjeta de tipo de afectación no vial
+            redVialCategory: 'all',   // Filtro dinámico por tarjetas de tipo de Red Vial (Primaria, Secundaria, Terciaria, Urbana)
+            tipoRedVial: 'all'        // Filtro por tipo de elemento vial (Puente, Pavimento, etc.)
         },
         selectedMpio: null  // Currently selected municipality normalized name
     };
@@ -463,12 +465,14 @@ document.addEventListener('DOMContentLoaded', () => {
             state.reports = cleanReports;
             state.selectedMpio = null; // Reiniciar selección
             
-            // Actualizar filtros: al cargar, mostrar solo Infraestructura Vial
+            // Actualizar filtros al cargar datos
             dom.subregionFilter.value = 'all';
             state.activeFilters.subregion = 'all';
             state.activeFilters.gravity = 'all';
             state.activeFilters.search = '';
-            state.activeFilters.damageType = 'Infraestructura Vial';
+            state.activeFilters.damageType = 'all';
+            state.activeFilters.redVialCategory = 'all';
+            state.activeFilters.tipoRedVial = 'all';
             dom.searchInput.value = '';
             dom.clearSearchBtn.style.display = 'none';
             dom.gravityTags.forEach(tag => {
@@ -532,7 +536,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Filtrar los datos en base a los inputs del usuario
     function applyFilters() {
-        const { subregion, gravity, search, damageType, tipoRedVial } = state.activeFilters;
+        const { subregion, gravity, search, damageType, redVialCategory, tipoRedVial } = state.activeFilters;
         
         state.filteredReports = state.reports.filter(report => {
             // Filtro por subregión
@@ -543,9 +547,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const matchGravity = gravity === 'all' || 
                 report.Gravedad === gravity;
                 
-            // Filtro por tipo de afectación (tarjetas interactivas)
+            // Filtro por tipo de afectación (tarjetas interactivas no viales)
             const matchDamageType = damageType === 'all' || 
                 normalizeName(report.Tipo_Afectacion) === normalizeName(damageType);
+
+            // Filtro por categoría de Red Vial (Primaria, Secundaria, Terciaria, Urbana)
+            let matchRedVialCategory = true;
+            if (redVialCategory && redVialCategory !== 'all') {
+                const rRedVial = normalizeName(report.Red_Vial || '');
+                const rTipoAfect = normalizeName(report.Tipo_Afectacion || '');
+                const isVial = isVialType(rTipoAfect) || rRedVial.length > 0;
+                matchRedVialCategory = isVial && rRedVial.includes(redVialCategory);
+            }
 
             // Filtro por tipo de elemento red vial
             const matchTipoRedVial = !tipoRedVial || tipoRedVial === 'all' ||
@@ -560,7 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 normalizeName(report.Red_Vial || '').includes(normSearch) ||
                 normalizeName(report.Ubicacion || '').includes(normSearch);
 
-            return matchSubregion && matchGravity && matchDamageType && matchTipoRedVial && matchSearch;
+            return matchSubregion && matchGravity && matchDamageType && matchRedVialCategory && matchTipoRedVial && matchSearch;
         });
     }
 
@@ -643,11 +656,8 @@ document.addEventListener('DOMContentLoaded', () => {
             card.addEventListener('click', () => {
                 if (isActive) {
                     state.activeFilters.tipoRedVial = 'all';
-                    // Volver al filtro de Infraestructura Vial en lugar de all
-                    state.activeFilters.damageType = 'Infraestructura Vial';
                 } else {
                     state.activeFilters.tipoRedVial = normalizeName(tipo);
-                    state.activeFilters.damageType = 'Infraestructura Vial';
                 }
                 updateDashboard();
             });
@@ -773,46 +783,88 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Generar y renderizar las tarjetas dinámicas de tipo de afectación (INFRAESTRUCTURA VIAL PRIMERO)
+    // Generar y renderizar las tarjetas dinámicas (4 Tarjetas Red Vial + Tipos de Afectación No Viales)
     function renderDamageTypeCards() {
+        if (!dom.damageTypesGrid) return;
         dom.damageTypesGrid.innerHTML = '';
-        
-        // Obtener el conteo por Tipo_Afectacion a partir de TODOS los reportes cargados
+
+        // 1. Renderizar las 4 tarjetas filtro para los tipos de Red Vial (Primaria, Secundaria, Terciaria, Urbana)
+        const VIAL_CATEGORIES = [
+            { key: 'PRIMARIA', label: 'red vial primaria', icon: 'route', defaultColor: '#ef4444' },
+            { key: 'SECUNDARIA', label: 'red vial secundaria', icon: 'git-merge', defaultColor: '#f97316' },
+            { key: 'TERCIARIA', label: 'red vial terciaria', icon: 'trees', defaultColor: '#3b82f6' },
+            { key: 'URBANA', label: 'red vial urbana', icon: 'building-2', defaultColor: '#10b981' }
+        ];
+
+        VIAL_CATEGORIES.forEach(cat => {
+            const catReports = state.reports.filter(r => {
+                const isVial = isVialType(r.Tipo_Afectacion) || !!r.Red_Vial;
+                const rRedVial = normalizeName(r.Red_Vial || '');
+                return isVial && rRedVial.includes(cat.key);
+            });
+
+            const count = catReports.length;
+            const isActive = state.activeFilters.redVialCategory === cat.key;
+
+            const highCount = catReports.filter(r => r.Gravedad === 'Alta').length;
+            const lowCount = catReports.filter(r => r.Gravedad === 'Baja').length;
+            let cardColor = cat.defaultColor;
+            if (highCount > 0 && highCount >= catReports.length / 2) {
+                cardColor = 'var(--accent-red)';
+            } else if (lowCount > 0 && lowCount >= catReports.length / 2) {
+                cardColor = 'var(--accent-blue)';
+            }
+
+            const card = document.createElement('div');
+            card.className = `damage-type-card vial-category-card ${isActive ? 'active' : ''}`;
+
+            if (isActive) {
+                card.style.borderColor = cardColor;
+                card.style.boxShadow = `0 0 14px ${cardColor}40`;
+                card.style.background = `rgba(255, 255, 255, 0.08)`;
+            }
+
+            card.innerHTML = `
+                <div class="damage-type-header">
+                    <span class="damage-type-count">${count}</span>
+                    <i data-lucide="${cat.icon}" class="damage-type-icon" style="color: ${cardColor}"></i>
+                </div>
+                <div class="damage-type-body">
+                    <span class="damage-type-label">${cat.label}</span>
+                </div>
+            `;
+
+            card.addEventListener('click', () => {
+                if (state.activeFilters.redVialCategory === cat.key) {
+                    state.activeFilters.redVialCategory = 'all';
+                } else {
+                    state.activeFilters.redVialCategory = cat.key;
+                    state.activeFilters.damageType = 'all';
+                }
+                updateDashboard();
+            });
+
+            dom.damageTypesGrid.appendChild(card);
+        });
+
+        // 2. Conteo por Tipo_Afectacion excluyendo Infraestructura Vial
         const counts = {};
         state.reports.forEach(report => {
             const type = report.Tipo_Afectacion;
-            if (type) {
+            if (type && !isVialType(type)) {
                 counts[type] = (counts[type] || 0) + 1;
             }
         });
 
-        const types = Object.keys(counts);
-
-        if (types.length === 0) {
-            dom.damageTypesGrid.innerHTML = '<div class="no-data">Sin afectaciones</div>';
-            return;
-        }
-
-        // Ordenar categorías colocando INFRAESTRUCTURA VIAL en PRIMERA posición
-        types.sort((a, b) => {
-            const aIsVial = isVialType(a);
-            const bIsVial = isVialType(b);
-            if (aIsVial && !bIsVial) return -1;
-            if (!aIsVial && bIsVial) return 1;
-            return counts[b] - counts[a];
-        });
+        const types = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
 
         types.forEach(type => {
             const count = counts[type];
             const normalizedType = normalizeName(type);
             const isActive = state.activeFilters.damageType === normalizedType;
-            const isVial = isVialType(type);
 
-            // Mapear icono lucide representativo
             let iconName = 'alert-octagon';
-            if (isVial) {
-                iconName = 'milestone';
-            } else if (normalizedType.includes('VIVIENDA') || normalizedType.includes('CASA') || normalizedType.includes('TECHO')) {
+            if (normalizedType.includes('VIVIENDA') || normalizedType.includes('CASA') || normalizedType.includes('TECHO')) {
                 iconName = 'home';
             } else if (normalizedType.includes('IGLESIA') || normalizedType.includes('TEMPLO') || normalizedType.includes('CATEDRAL')) {
                 iconName = 'church';
@@ -820,13 +872,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 iconName = 'heart-pulse';
             } else if (normalizedType.includes('GRIETA') || normalizedType.includes('FACHADA') || normalizedType.includes('MURO')) {
                 iconName = 'split';
+            } else if (normalizedType.includes('EDUCATIV') || normalizedType.includes('ESCUELA') || normalizedType.includes('COLEGIO')) {
+                iconName = 'graduation-cap';
+            } else if (normalizedType.includes('HIDRIC') || normalizedType.includes('AGUA') || normalizedType.includes('ACUEDUCTO')) {
+                iconName = 'droplets';
             }
 
-            // Establecer color de la tarjeta según la gravedad promedio
             const typeReports = state.reports.filter(r => normalizeName(r.Tipo_Afectacion) === normalizedType);
             const highCount = typeReports.filter(r => r.Gravedad === 'Alta').length;
             const lowCount = typeReports.filter(r => r.Gravedad === 'Baja').length;
-            let cardColor = isVial ? '#f59e0b' : 'var(--accent-orange)'; // default Media Amber para viales
+            let cardColor = 'var(--accent-orange)';
             
             if (highCount > typeReports.length / 2) {
                 cardColor = 'var(--accent-red)';
@@ -835,7 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const card = document.createElement('div');
-            card.className = `damage-type-card ${isActive ? 'active' : ''} ${isVial ? 'priority-vial-type-card' : ''}`;
+            card.className = `damage-type-card ${isActive ? 'active' : ''}`;
             
             if (isActive) {
                 card.style.borderColor = cardColor;
@@ -853,12 +908,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
-            // Filtrar al hacer clic
             card.addEventListener('click', () => {
                 if (isActive) {
                     state.activeFilters.damageType = 'all';
                 } else {
                     state.activeFilters.damageType = normalizedType;
+                    state.activeFilters.redVialCategory = 'all';
                 }
                 updateDashboard();
             });
@@ -1396,7 +1451,7 @@ document.addEventListener('DOMContentLoaded', () => {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9);
         doc.setTextColor(203, 213, 225);
-        doc.text('SismoInfra Antioquia • Sistema de Monitoreo Geográfico y Evaluaciones de Emergencia', 14, 23);
+        doc.text('Secretaría de Infraestructura Física - Gobernación de Antioquia', 14, 23);
 
         doc.setFontSize(8);
         doc.setTextColor(148, 163, 184);
@@ -1425,13 +1480,14 @@ document.addEventListener('DOMContentLoaded', () => {
             (idx + 1).toString(),
             r.Municipio || '-',
             r.Subregion || '-',
-            r.Red_Vial || 'Red Vial',
+            r.Red_Vial || '-',
+            r.Tipo_Red_Vial || '-',
             r.Descripcion || 'Sin descripción disponible'
         ]);
 
         doc.autoTable({
             startY: tableStartY + 4,
-            head: [['N°', 'Municipio', 'Subregión', 'Red Vial', 'Descripción del Impacto']],
+            head: [['N°', 'Municipio', 'Subregión', 'Red Vial', 'Tipo elemento vial', 'Descripción del Impacto']],
             body: tableBody,
             theme: 'grid',
             headStyles: {
@@ -1447,11 +1503,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 textColor: [30, 41, 59]
             },
             columnStyles: {
-                0: { cellWidth: 10, halign: 'center' },
-                1: { cellWidth: 35, fontStyle: 'bold' },
-                2: { cellWidth: 30 },
-                3: { cellWidth: 35 },
-                4: { cellWidth: 'auto' }
+                0: { cellWidth: 8, halign: 'center' },
+                1: { cellWidth: 28, fontStyle: 'bold' },
+                2: { cellWidth: 25 },
+                3: { cellWidth: 28 },
+                4: { cellWidth: 28 },
+                5: { cellWidth: 'auto' }
             },
             alternateRowStyles: {
                 fillColor: [248, 250, 252]

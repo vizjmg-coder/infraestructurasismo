@@ -1037,6 +1037,14 @@ body {
     border-color: var(--accent-blue);
     box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
 }
+.vial-category-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.vial-category-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.18);
+}
 .damage-type-header {
     display: flex;
     justify-content: space-between;
