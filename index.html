@@ -48,44 +48,23 @@
         <aside class="sidebar glass-panel">
             <!-- Sidebar Header -->
             <header class="sidebar-header">
-                <div class="logo-area">
-                    <i data-lucide="activity" class="logo-icon animate-pulse"></i>
-                    <div>
-                        <h1>SismoInfra</h1>
-                        <span class="tagline">Antioquia</span>
-                    </div>
-                </div>
-                <div class="status-indicator">
-                    <span class="pulse-dot green"></span>
-                    <span class="status-text">Listo</span>
-                </div>
+                <h1 class="header-main-title">REPORTE DE AFECTACIÓN - INFRAESTRUCTURA VIAL</h1>
+                <span class="header-sub-title">Secretaría de Infraestructura Física - Gobernación de Antioquia</span>
             </header>
 
             <!-- Damage Types Section -->
             <section class="damage-types-section">
                 <div class="section-title">
                     <h3>Afectaciones por Tipo Red Vial</h3>
-                    <a href="https://docs.google.com/spreadsheets/d/1ETyMqVB029hJGHpnuHNE-eTKYoO1oFIroy4rF_UHj2I/edit?usp=sharing" target="_blank" class="template-link" style="color: var(--accent-green); text-decoration: none; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                        <i data-lucide="external-link" class="icon-sm"></i> Google Sheet
-                    </a>
+                    <div class="header-stat-card">
+                        <i data-lucide="milestone" class="icon-sm"></i>
+                        <span class="stat-value" id="stat-affected-count">0</span>
+                        <span class="stat-text">Municipios Afectados</span>
+                    </div>
                 </div>
                 <div class="damage-types-grid" id="damage-types-grid">
                     <!-- Dynamic cards will go here -->
                     <div class="no-data">Cargando tipos...</div>
-                </div>
-            </section>
-
-            <!-- Statistics Cards -->
-            <section class="stats-section">
-                <div class="stat-card stat-card-large glass-panel">
-                    <div class="stat-icon-wrapper red">
-                        <i data-lucide="milestone"></i>
-                    </div>
-                    <div class="stat-info">
-                        <span class="stat-value" id="stat-affected-count">0</span>
-                        <span class="stat-label">Municipios Afectados</span>
-                        <span class="stat-sublabel">por Infraestructura Vial</span>
-                    </div>
                 </div>
             </section>
 
@@ -100,42 +79,25 @@
                 </div>
             </section>
 
-            <!-- Search and Filter Panel -->
-            <section class="filters-section">
-                <div class="search-box">
-                    <i data-lucide="search" class="search-icon"></i>
-                    <input type="text" id="search-input" placeholder="Buscar municipio...">
-                    <button id="clear-search-btn" class="clear-btn" style="display: none;">
-                        <i data-lucide="x" class="icon-sm"></i>
-                    </button>
+            <!-- Subregiones Chart Section -->
+            <section class="subregions-chart-section">
+                <div class="section-title">
+                    <h3>Afectaciones por Subregión</h3>
+                    <select id="subregion-filter" class="glass-select-sm">
+                        <option value="all">Todas las Subregiones</option>
+                        <option value="Bajo Cauca">Bajo Cauca</option>
+                        <option value="Magdalena Medio">Magdalena Medio</option>
+                        <option value="Nordeste">Nordeste</option>
+                        <option value="Norte">Norte</option>
+                        <option value="Occidente">Occidente</option>
+                        <option value="Oriente">Oriente</option>
+                        <option value="Suroeste">Suroeste</option>
+                        <option value="Urabá">Urabá</option>
+                        <option value="Valle de Aburrá">Valle de Aburrá</option>
+                    </select>
                 </div>
-
-                <div class="filter-controls">
-                    <div class="filter-group">
-                        <label for="subregion-filter">Subregión</label>
-                        <select id="subregion-filter" class="glass-select">
-                            <option value="all">Todas las Subregiones</option>
-                            <option value="Bajo Cauca">Bajo Cauca</option>
-                            <option value="Magdalena Medio">Magdalena Medio</option>
-                            <option value="Nordeste">Nordeste</option>
-                            <option value="Norte">Norte</option>
-                            <option value="Occidente">Occidente</option>
-                            <option value="Oriente">Oriente</option>
-                            <option value="Suroeste">Suroeste</option>
-                            <option value="Urabá">Urabá</option>
-                            <option value="Valle de Aburrá">Valle de Aburrá</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label>Gravedad del Daño</label>
-                        <div class="gravity-tags">
-                            <button class="gravity-tag active" data-gravity="all">Todos</button>
-                            <button class="gravity-tag" data-gravity="Alta" style="--tag-color: #ef4444;">Alta</button>
-                            <button class="gravity-tag" data-gravity="Media" style="--tag-color: #f97316;">Media</button>
-                            <button class="gravity-tag" data-gravity="Baja" style="--tag-color: #3b82f6;">Baja</button>
-                        </div>
-                    </div>
+                <div class="subregions-chart-container" id="subregions-chart-container">
+                    <div class="no-data">Cargando gráfico...</div>
                 </div>
             </section>
 

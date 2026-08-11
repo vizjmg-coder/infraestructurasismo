@@ -466,18 +466,13 @@ document.addEventListener('DOMContentLoaded', () => {
             state.selectedMpio = null; // Reiniciar selección
             
             // Actualizar filtros al cargar datos
-            dom.subregionFilter.value = 'all';
+            if (dom.subregionFilter) dom.subregionFilter.value = 'all';
             state.activeFilters.subregion = 'all';
             state.activeFilters.gravity = 'all';
             state.activeFilters.search = '';
             state.activeFilters.damageType = 'all';
             state.activeFilters.redVialCategory = 'all';
             state.activeFilters.tipoRedVial = 'all';
-            dom.searchInput.value = '';
-            dom.clearSearchBtn.style.display = 'none';
-            dom.gravityTags.forEach(tag => {
-                tag.classList.toggle('active', tag.dataset.gravity === 'all');
-            });
             
             updateDashboard();
             
@@ -525,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderReportsList();
         renderDamageTypeCards();
         renderRedVialTypeCards();
+        renderSubregionChart();
         
         // Restablecer estilos de todas las capas municipales según los filtros actuales
         Object.keys(state.layerMap).forEach(normalized => {
@@ -668,6 +664,95 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.lucide) window.lucide.createIcons();
     }
 
+    // Renderizar gráfico interactivo de Afectaciones por Subregión (Oculta subregiones con 0 afectaciones viales)
+    function renderSubregionChart() {
+        const container = document.getElementById('subregions-chart-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        const ALL_SUBREGIONS = [
+            'Bajo Cauca', 'Magdalena Medio', 'Nordeste', 'Norte',
+            'Occidente', 'Oriente', 'Suroeste', 'Urabá', 'Valle de Aburrá'
+        ];
+
+        // Contar reportes de afectaciones viales por subregión
+        const subCounts = {};
+        ALL_SUBREGIONS.forEach(s => subCounts[s] = 0);
+
+        state.reports.forEach(r => {
+            const isVial = isVialType(r.Tipo_Afectacion) || !!r.Red_Vial;
+            if (isVial && r.Subregion) {
+                if (subCounts.hasOwnProperty(r.Subregion)) {
+                    subCounts[r.Subregion]++;
+                } else {
+                    subCounts[r.Subregion] = (subCounts[r.Subregion] || 0) + 1;
+                }
+            }
+        });
+
+        // Filtrar únicamente las subregiones que tengan al menos 1 afectación vial
+        const activeSubregions = Object.keys(subCounts).filter(s => subCounts[s] > 0);
+
+        if (activeSubregions.length === 0) {
+            container.innerHTML = '<div class="no-data">Sin afectaciones viales registradas</div>';
+            return;
+        }
+
+        const activeSubregion = state.activeFilters.subregion || 'all';
+        const maxCount = Math.max(...activeSubregions.map(s => subCounts[s]), 1);
+
+        // Ordenar subregiones activas por cantidad descendente
+        const sortedSubs = activeSubregions.sort((a, b) => subCounts[b] - subCounts[a]);
+
+        sortedSubs.forEach(sub => {
+            const count = subCounts[sub];
+            const pct = Math.round((count / maxCount) * 100);
+            const isActive = activeSubregion !== 'all' && normalizeName(activeSubregion) === normalizeName(sub);
+
+            const row = document.createElement('div');
+            row.className = `subregion-bar-row ${isActive ? 'active' : ''}`;
+            
+            row.innerHTML = `
+                <div class="subregion-bar-header">
+                    <span class="subregion-bar-name">${sub}</span>
+                    <span class="subregion-bar-count">${count}</span>
+                </div>
+                <div class="subregion-bar-track">
+                    <div class="subregion-bar-fill" style="width: ${pct}%;"></div>
+                </div>
+            `;
+
+            row.addEventListener('click', () => {
+                if (isActive) {
+                    state.activeFilters.subregion = 'all';
+                    if (dom.subregionFilter) dom.subregionFilter.value = 'all';
+                } else {
+                    state.activeFilters.subregion = sub;
+                    if (dom.subregionFilter) dom.subregionFilter.value = sub;
+                }
+                updateDashboard();
+            });
+
+            container.appendChild(row);
+        });
+
+        // Actualizar opciones del select desplegable de subregiones
+        if (dom.subregionFilter) {
+            const currentVal = dom.subregionFilter.value;
+            dom.subregionFilter.innerHTML = '<option value="all">Todas las Subregiones</option>';
+            sortedSubs.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.textContent = sub;
+                if (normalizeName(currentVal) === normalizeName(sub)) {
+                    opt.selected = true;
+                }
+                dom.subregionFilter.appendChild(opt);
+            });
+        }
+    }
+
     // Renderizar los marcadores de alerta en el centro geográfico de los municipios afectados
     function renderMarkers() {
         state.markersGroup.clearLayers();
@@ -725,8 +810,44 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.reportsList.innerHTML = '';
         dom.visibleReportsCount.innerText = state.filteredReports.length;
 
+        // Mostrar barra indicadora de filtro activo con botón de reset si hay filtros seleccionados
+        const hasActiveFilter = (state.activeFilters.redVialCategory && state.activeFilters.redVialCategory !== 'all') || 
+                                (state.activeFilters.subregion && state.activeFilters.subregion !== 'all') || 
+                                (state.activeFilters.tipoRedVial && state.activeFilters.tipoRedVial !== 'all') ||
+                                (state.activeFilters.damageType && state.activeFilters.damageType !== 'all');
+
+        if (hasActiveFilter) {
+            let activeLabel = 'Filtro activo';
+            if (state.activeFilters.redVialCategory && state.activeFilters.redVialCategory !== 'all') {
+                activeLabel = `Red Vial ${state.activeFilters.redVialCategory.toLowerCase()}`;
+            } else if (state.activeFilters.subregion && state.activeFilters.subregion !== 'all') {
+                activeLabel = `Subregión ${state.activeFilters.subregion}`;
+            } else if (state.activeFilters.tipoRedVial && state.activeFilters.tipoRedVial !== 'all') {
+                activeLabel = `Elemento ${state.activeFilters.tipoRedVial}`;
+            }
+
+            const filterBar = document.createElement('div');
+            filterBar.className = 'active-filter-bar';
+            filterBar.innerHTML = `
+                <div class="active-filter-title">
+                    <i data-lucide="filter" class="icon-sm"></i>
+                    <span>${activeLabel} (${state.filteredReports.length})</span>
+                </div>
+                <button class="btn-reset-filters" id="reset-all-filters-btn">Limpiar todo</button>
+            `;
+            filterBar.querySelector('#reset-all-filters-btn').addEventListener('click', () => {
+                state.activeFilters.redVialCategory = 'all';
+                state.activeFilters.subregion = 'all';
+                state.activeFilters.tipoRedVial = 'all';
+                state.activeFilters.damageType = 'all';
+                if (dom.subregionFilter) dom.subregionFilter.value = 'all';
+                updateDashboard();
+            });
+            dom.reportsList.appendChild(filterBar);
+        }
+
         if (state.filteredReports.length === 0) {
-            dom.reportsList.innerHTML = `<div class="no-data">No se encontraron reportes con los filtros seleccionados.</div>`;
+            dom.reportsList.innerHTML += `<div class="no-data">No se encontraron reportes con los filtros seleccionados.</div>`;
             return;
         }
 
@@ -790,10 +911,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 1. Renderizar las 4 tarjetas filtro para los tipos de Red Vial (Primaria, Secundaria, Terciaria, Urbana)
         const VIAL_CATEGORIES = [
-            { key: 'PRIMARIA', label: 'red vial primaria', icon: 'route', defaultColor: '#ef4444' },
-            { key: 'SECUNDARIA', label: 'red vial secundaria', icon: 'git-merge', defaultColor: '#f97316' },
-            { key: 'TERCIARIA', label: 'red vial terciaria', icon: 'trees', defaultColor: '#3b82f6' },
-            { key: 'URBANA', label: 'red vial urbana', icon: 'building-2', defaultColor: '#10b981' }
+            { key: 'PRIMARIA', label: 'red vial primaria', icon: 'route', defaultColor: '#ef4444', cssClass: 'cat-primaria' },
+            { key: 'SECUNDARIA', label: 'red vial secundaria', icon: 'git-merge', defaultColor: '#3b82f6', cssClass: 'cat-secundaria' },
+            { key: 'TERCIARIA', label: 'red vial terciaria', icon: 'trees', defaultColor: '#f97316', cssClass: 'cat-terciaria' },
+            { key: 'URBANA', label: 'red vial urbana', icon: 'building-2', defaultColor: '#10b981', cssClass: 'cat-urbana' }
         ];
 
         VIAL_CATEGORIES.forEach(cat => {
@@ -806,28 +927,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const count = catReports.length;
             const isActive = state.activeFilters.redVialCategory === cat.key;
 
-            const highCount = catReports.filter(r => r.Gravedad === 'Alta').length;
-            const lowCount = catReports.filter(r => r.Gravedad === 'Baja').length;
-            let cardColor = cat.defaultColor;
-            if (highCount > 0 && highCount >= catReports.length / 2) {
-                cardColor = 'var(--accent-red)';
-            } else if (lowCount > 0 && lowCount >= catReports.length / 2) {
-                cardColor = 'var(--accent-blue)';
-            }
-
             const card = document.createElement('div');
-            card.className = `damage-type-card vial-category-card ${isActive ? 'active' : ''}`;
-
-            if (isActive) {
-                card.style.borderColor = cardColor;
-                card.style.boxShadow = `0 0 14px ${cardColor}40`;
-                card.style.background = `rgba(255, 255, 255, 0.08)`;
-            }
+            card.className = `damage-type-card vial-category-card ${cat.cssClass} ${isActive ? 'active' : ''}`;
 
             card.innerHTML = `
                 <div class="damage-type-header">
                     <span class="damage-type-count">${count}</span>
-                    <i data-lucide="${cat.icon}" class="damage-type-icon" style="color: ${cardColor}"></i>
+                    <i data-lucide="${cat.icon}" class="damage-type-icon" style="color: ${cat.defaultColor}"></i>
                 </div>
                 <div class="damage-type-body">
                     <span class="damage-type-label">${cat.label}</span>
@@ -1104,36 +1210,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Configurar filtros y buscador de la UI
     function setupFilters() {
-        // Buscador de texto
-        dom.searchInput.addEventListener('input', (e) => {
-            state.activeFilters.search = e.target.value;
-            dom.clearSearchBtn.style.display = e.target.value ? 'block' : 'none';
-            updateDashboard();
-        });
-
-        dom.clearSearchBtn.addEventListener('click', () => {
-            dom.searchInput.value = '';
-            state.activeFilters.search = '';
-            dom.clearSearchBtn.style.display = 'none';
-            updateDashboard();
-        });
-
-        // Dropdown de Subregión
-        dom.subregionFilter.addEventListener('change', (e) => {
-            state.activeFilters.subregion = e.target.value;
-            updateDashboard();
-        });
-
-        // Botones de etiquetas de gravedad
-        dom.gravityTags.forEach(tag => {
-            tag.addEventListener('click', () => {
-                dom.gravityTags.forEach(t => t.classList.remove('active'));
-                tag.classList.add('active');
-                
-                state.activeFilters.gravity = tag.dataset.gravity;
+        if (dom.subregionFilter) {
+            dom.subregionFilter.addEventListener('change', (e) => {
+                state.activeFilters.subregion = e.target.value;
                 updateDashboard();
             });
-        });
+        }
     }
 
     // Interacciones adicionales de los botones
@@ -1188,38 +1270,15 @@ document.addEventListener('DOMContentLoaded', () => {
        Generación de Mapa Canvas y Reporte PDF (Infraestructura Vial)
        ========================================================================== */
     
-    // Generar un gráfico tipo Canvas de la visión general de Antioquia con los puntos afectados
-    function generateAntioquiaCanvasMap(vialReports) {
-        if (!state.geojsonRaw || !state.geojsonRaw.features) {
-            return null;
-        }
+    /* ==========================================================================
+       Generación de Mapa y Gráficos Nativos Vectoriales para PDF (100% Vectorial)
+       ========================================================================== */
+    
+    // Dibujar Mapa Vectorial de Antioquia en PDF (Limpio, sin fondo ni cuadrículas, puntos compactos)
+    function drawAntioquiaVectorMap(doc, mapX, mapY, mapWidth, mapHeight, vialReports) {
+        if (!state.geojsonRaw || !state.geojsonRaw.features) return;
 
-        const canvas = document.createElement('canvas');
-        canvas.width = 1200;
-        canvas.height = 850;
-        const ctx = canvas.getContext('2d');
-
-        // Fondo oscuro ejecutivo premium
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Grid sutil decorativo en el fondo
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
-        ctx.lineWidth = 1;
-        for (let x = 0; x < canvas.width; x += 40) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, canvas.height);
-            ctx.stroke();
-        }
-        for (let y = 0; y < canvas.height; y += 40) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(canvas.width, y);
-            ctx.stroke();
-        }
-
-        // Calcular la caja delimitadora (Bounding Box) de Antioquia
+        // Bounding Box del GeoJSON
         let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
 
         function extractPoints(geometry) {
@@ -1243,19 +1302,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        if (minLng === Infinity) return null;
+        if (minLng === Infinity) return;
 
-        // Parámetros de proyección
-        const padding = 70;
-        const width = canvas.width - padding * 2;
-        const height = canvas.height - padding * 2;
+        const mapPadding = 4;
+        const innerWidth = mapWidth - mapPadding * 2;
+        const innerHeight = mapHeight - mapPadding * 2;
 
         const lngSpan = maxLng - minLng;
         const latSpan = maxLat - minLat;
 
-        const scale = Math.min(width / lngSpan, height / latSpan);
-        const xOffset = padding + (width - lngSpan * scale) / 2;
-        const yOffset = padding + (height - latSpan * scale) / 2;
+        const scale = Math.min(innerWidth / lngSpan, innerHeight / latSpan);
+        const xOffset = mapX + mapPadding + (innerWidth - lngSpan * scale) / 2;
+        const yOffset = mapY + mapPadding + (innerHeight - latSpan * scale) / 2;
 
         function project(lng, lat) {
             const x = xOffset + (lng - minLng) * scale;
@@ -1263,15 +1321,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return [x, y];
         }
 
-        // Conjunto de nombres normalizados de municipios con afectación vial
-        const affectedMpioMap = {};
+        // Mapa de municipios afectados
+        const affectedMap = {};
         vialReports.forEach(r => {
-            affectedMpioMap[normalizeName(r.Municipio)] = r;
+            affectedMap[normalizeName(r.Municipio)] = r;
         });
 
-        // 1. Dibujar Polígonos de Municipios (todos igual, sin resaltar afectados)
+        // 1. Dibujar Polígonos de Municipios (Limpio, sin fondo ni líneas cuadrícula en el mapa)
         state.geojsonRaw.features.forEach(feature => {
             if (!feature.geometry) return;
+            const mpioNameNorm = normalizeName(feature.properties.MPIO_NOMBR || '');
+            const isAffected = affectedMap.hasOwnProperty(mpioNameNorm);
 
             const polygons = feature.geometry.type === 'Polygon' 
                 ? [feature.geometry.coordinates] 
@@ -1279,133 +1339,168 @@ document.addEventListener('DOMContentLoaded', () => {
 
             polygons.forEach(polygon => {
                 polygon.forEach(ring => {
-                    if (ring.length === 0) return;
-                    ctx.beginPath();
-                    const [startX, startY] = project(ring[0][0], ring[0][1]);
-                    ctx.moveTo(startX, startY);
+                    if (ring.length < 3) return;
+                    const ringPdf = ring.map(([lng, lat]) => project(lng, lat));
+                    const startX = ringPdf[0][0];
+                    const startY = ringPdf[0][1];
 
-                    for (let i = 1; i < ring.length; i++) {
-                        const [x, y] = project(ring[i][0], ring[i][1]);
-                        ctx.lineTo(x, y);
+                    const relativeLines = [];
+                    for (let i = 1; i < ringPdf.length; i++) {
+                        const dx = ringPdf[i][0] - ringPdf[i - 1][0];
+                        const dy = ringPdf[i][1] - ringPdf[i - 1][1];
+                        relativeLines.push([dx, dy]);
                     }
-                    ctx.closePath();
 
-                    // Todos los municipios con el mismo estilo neutro
-                    ctx.fillStyle = 'rgba(30, 41, 59, 0.65)';
-                    ctx.fill();
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-                    ctx.lineWidth = 0.7;
-                    ctx.stroke();
+                    if (isAffected) {
+                        doc.setFillColor(254, 226, 226); // Rojo suave #fee2e2
+                        doc.setDrawColor(239, 68, 68); // Borde rojo tenue #ef4444
+                        doc.setLineWidth(0.2);
+                    } else {
+                        doc.setFillColor(248, 250, 252); // Gris claro limpio #f8fafc
+                        doc.setDrawColor(203, 213, 225); // Borde gris suave #cbd5e1
+                        doc.setLineWidth(0.1);
+                    }
+
+                    doc.lines(relativeLines, startX, startY, [1, 1], 'FD', true);
                 });
             });
         });
 
-        // 2. Dibujar Puntos / Marcadores de Impacto en Municipios Afectados
-        vialReports.forEach(report => {
-            const normMpio = normalizeName(report.Municipio);
-            const layer = state.layerMap[normMpio];
-            let centerLng, centerLat;
+        // 2. Dibujar Puntos Rojos Compactos y Fines e Identificadores
+        state.geojsonRaw.features.forEach(feature => {
+            if (!feature.geometry) return;
+            const mpioName = feature.properties.MPIO_NOMBR || '';
+            const mpioNameNorm = normalizeName(mpioName);
+            if (!affectedMap.hasOwnProperty(mpioNameNorm)) return;
 
-            if (layer) {
-                const center = layer.getBounds().getCenter();
-                centerLng = center.lng;
-                centerLat = center.lat;
-            } else {
-                const feature = state.geojsonRaw.features.find(f => normalizeName(f.properties.MPIO_NOMBR) === normMpio);
-                if (feature) {
-                    const pts = extractPoints(feature.geometry);
-                    let sumX = 0, sumY = 0;
-                    pts.forEach(([lng, lat]) => { sumX += lng; sumY += lat; });
-                    centerLng = sumX / pts.length;
-                    centerLat = sumY / pts.length;
-                }
-            }
+            const pts = extractPoints(feature.geometry);
+            let sumX = 0, sumY = 0;
+            pts.forEach(([lng, lat]) => {
+                const [px, py] = project(lng, lat);
+                sumX += px;
+                sumY += py;
+            });
+            const cX = sumX / pts.length;
+            const cY = sumY / pts.length;
 
-            if (centerLng && centerLat) {
-                const [x, y] = project(centerLng, centerLat);
-                const color = getGravityColor(report.Gravedad);
+            // Punto rojo compacto (radio 1.1mm)
+            doc.setFillColor(239, 68, 68);
+            doc.circle(cX, cY, 1.1, 'F');
+            
+            // Punto central blanco fino
+            doc.setFillColor(255, 255, 255);
+            doc.circle(cX, cY, 0.4, 'F');
 
-                // Aura exterior translúcida
-                ctx.beginPath();
-                ctx.arc(x, y, 16, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${getGravityRgb(report.Gravedad)}, 0.25)`;
-                ctx.fill();
+            // Nombre del municipio en fuente pequeña y legible
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(5);
+            doc.setTextColor(30, 41, 59); // #1e293b
+            doc.text(mpioName, cX, cY - 1.8, { align: 'center' });
+        });
 
-                // Anillo de impacto
-                ctx.beginPath();
-                ctx.arc(x, y, 9, 0, Math.PI * 2);
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
+        // 3. Leyenda del Mapa Vectorial (Estilo limpio blanco)
+        const legX = mapX + mapWidth - 52;
+        const legY = mapY + mapHeight - 14;
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.2);
+        doc.roundedRect(legX, legY, 50, 12, 1.5, 1.5, 'FD');
 
-                // Punto central brillante
-                ctx.beginPath();
-                ctx.arc(x, y, 4, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
+        doc.setFillColor(239, 68, 68);
+        doc.circle(legX + 4, legY + 4, 1.0, 'F');
+        doc.setFillColor(255, 255, 255);
+        doc.circle(legX + 4, legY + 4, 0.4, 'F');
 
-                // Etiqueta del municipio con fondo tipo pill
-                const label = report.Municipio;
-                ctx.font = 'bold 11px Outfit, Arial, sans-serif';
-                const textMetrics = ctx.measureText(label);
-                const textWidth = textMetrics.width;
-                const pillPadding = 6;
-                const pillX = x - textWidth / 2 - pillPadding;
-                const pillY = y - 30;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(5.5);
+        doc.setTextColor(30, 41, 59);
+        doc.text('Municipio con daño vial', legX + 7.5, legY + 4.8);
 
-                ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                if (ctx.roundRect) {
-                    ctx.roundRect(pillX, pillY, textWidth + pillPadding * 2, 18, 4);
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(203, 213, 225);
+        doc.rect(legX + 3, legY + 7.5, 2, 2, 'FD');
+        doc.setFont('helvetica', 'normal');
+        doc.text('Límite municipal Antioquia', legX + 7.5, legY + 9.2);
+    }
+
+    // Dibujar Gráfico Vectorial de Subregiones en PDF (Estilo limpio)
+    function drawSubregionVectorChart(doc, chartX, chartY, chartWidth, vialReports) {
+        const ALL_SUBREGIONS = [
+            'Bajo Cauca', 'Magdalena Medio', 'Nordeste', 'Norte',
+            'Occidente', 'Oriente', 'Suroeste', 'Urabá', 'Valle de Aburrá'
+        ];
+
+        const subCounts = {};
+        ALL_SUBREGIONS.forEach(s => subCounts[s] = 0);
+
+        vialReports.forEach(r => {
+            if (r.Subregion) {
+                if (subCounts.hasOwnProperty(r.Subregion)) {
+                    subCounts[r.Subregion]++;
                 } else {
-                    ctx.rect(pillX, pillY, textWidth + pillPadding * 2, 18);
+                    subCounts[r.Subregion] = (subCounts[r.Subregion] || 0) + 1;
                 }
-                ctx.fill();
-                ctx.stroke();
-
-                ctx.fillStyle = '#ffffff';
-                ctx.fillText(label, pillX + pillPadding, pillY + 13);
             }
         });
 
-        // 3. Encabezado en la Imagen Canvas
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-        ctx.fillRect(20, 20, 520, 50);
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(20, 20, 520, 50);
+        const activeSubregions = Object.keys(subCounts).filter(s => subCounts[s] > 0);
+        if (activeSubregions.length === 0) return 0;
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 14px Outfit, Arial, sans-serif';
-        ctx.fillText('MAPA DE AFECTACIÓN DE INFRAESTRUCTURA VIAL', 35, 42);
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '11px Outfit, Arial, sans-serif';
-        ctx.fillText('DEPARTAMENTO DE ANTIOQUIA - MONITOR SISMOINFRA', 35, 58);
+        activeSubregions.sort((a, b) => subCounts[b] - subCounts[a]);
+        const maxCount = Math.max(...activeSubregions.map(s => subCounts[s]), 1);
 
-        // 4. Leyenda de la Imagen Canvas
-        const legX = canvas.width - 260;
-        const legY = canvas.height - 90;
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-        ctx.fillRect(legX, legY, 240, 70);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(legX, legY, 240, 70);
+        const rowHeight = 5.5; // mm
+        const topPadding = 9;  // mm
+        const bottomPadding = 3.5; // mm
+        const chartHeight = topPadding + activeSubregions.length * rowHeight + bottomPadding;
 
-        ctx.fillStyle = '#ef4444';
-        ctx.beginPath(); ctx.arc(legX + 20, legY + 25, 6, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#ffffff'; ctx.font = '11px Outfit, Arial, sans-serif';
-        ctx.fillText('Municipio con Daño Vial', legX + 35, legY + 29);
+        // Contenedor del gráfico (Fondo limpio blanco)
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.25);
+        doc.roundedRect(chartX, chartY, chartWidth, chartHeight, 2, 2, 'FD');
 
-        ctx.fillStyle = 'rgba(30, 41, 59, 0.9)';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.fillRect(legX + 14, legY + 45, 12, 12);
-        ctx.strokeRect(legX + 14, legY + 45, 12, 12);
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText('Límite Municipal Antioquia', legX + 35, legY + 55);
+        // Línea roja de acento del título
+        doc.setFillColor(239, 68, 68);
+        doc.rect(chartX + 5, chartY + 4.5, 20, 0.6, 'F');
 
-        return canvas.toDataURL('image/png');
+        // Título del gráfico
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text('RESUMEN DE AFECTACIONES VIALES POR SUBREGIÓN', chartX + 28, chartY + 5.5);
+
+        const labelX = chartX + 5;
+        const barStartX = chartX + 42;
+        const maxBarWidth = chartWidth - 56; // mm
+
+        activeSubregions.forEach((sub, idx) => {
+            const count = subCounts[sub];
+            const y = chartY + topPadding + idx * rowHeight;
+            const barWidth = Math.max((count / maxCount) * maxBarWidth, 2.5);
+
+            // Nombre de la Subregión
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6.5);
+            doc.setTextColor(30, 41, 59);
+            doc.text(sub, labelX, y + 3.8);
+
+            // Pista del fondo de la barra
+            doc.setFillColor(241, 245, 249); // #f1f5f9
+            doc.roundedRect(barStartX, y + 1, maxBarWidth, 3.2, 0.8, 0.8, 'F');
+
+            // Barra vectorial con color azul acento
+            doc.setFillColor(59, 130, 246);
+            doc.roundedRect(barStartX, y + 1, barWidth, 3.2, 0.8, 0.8, 'F');
+
+            // Etiqueta numérica del conteo
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6.5);
+            doc.setTextColor(30, 41, 59);
+            doc.text(`${count}`, barStartX + barWidth + 2.5, y + 3.8);
+        });
+
+        return chartHeight;
     }
 
     // Exportar el reporte en PDF de Infraestructura Vial
@@ -1457,24 +1552,34 @@ document.addEventListener('DOMContentLoaded', () => {
         doc.setTextColor(148, 163, 184);
         doc.text(`Fecha de emisión: ${dateStr} - ${timeStr} | Municipios afectados: ${vialReports.length}`, 14, 30);
 
-        // --- SECCIÓN 1: MAPA GENERAL EN CANVAS ---
+        // --- SECCIÓN 1: MAPA GENERAL VECTORIAL ---
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
+        doc.setFontSize(10);
         doc.setTextColor(15, 23, 42);
-        doc.text('1. Mapa General de Afectaciones Viales en Antioquia', 14, 46);
+        doc.text('1. Mapa General de Afectaciones Viales en Antioquia', 14, 44);
 
-        // Generar mapa en Canvas y agregar la imagen al PDF
-        const mapCanvasData = generateAntioquiaCanvasMap(vialReports);
-        if (mapCanvasData) {
-            doc.addImage(mapCanvasData, 'PNG', 14, 49, 182, 115);
-        }
+        const mapX = 14;
+        const mapY = 47;
+        const mapWidth = 182;
+        const mapHeight = 98;
 
-        // --- SECCIÓN 2: LISTADO DE AFECTACIONES VIALES ---
-        const tableStartY = 172;
+        drawAntioquiaVectorMap(doc, mapX, mapY, mapWidth, mapHeight, vialReports);
+
+        // --- SECCIÓN 2: GRÁFICO DE SUBREGIONES VECTORIAL ---
+        const chartY = mapY + mapHeight + 6; // 151 mm
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
+        doc.setFontSize(10);
         doc.setTextColor(15, 23, 42);
-        doc.text('2. Listado Detallado de Afectaciones a la Red Vial', 14, tableStartY);
+        doc.text('2. Resumen de Afectaciones Viales por Subregión', 14, chartY - 2);
+
+        const chartHeight = drawSubregionVectorChart(doc, 14, chartY, 182, vialReports);
+        const nextY = chartY + chartHeight + 6;
+
+        // --- SECCIÓN 3: LISTADO DETALLADO DE AFECTACIONES VIALES ---
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        doc.text('3. Listado Detallado de Afectaciones a la Red Vial', 14, nextY);
 
         const tableBody = vialReports.map((r, idx) => [
             (idx + 1).toString(),
@@ -1486,7 +1591,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ]);
 
         doc.autoTable({
-            startY: tableStartY + 4,
+            startY: nextY + 3,
             head: [['N°', 'Municipio', 'Subregión', 'Red Vial', 'Tipo elemento vial', 'Descripción del Impacto']],
             body: tableBody,
             theme: 'grid',
