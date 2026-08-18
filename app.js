@@ -49,21 +49,21 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingOverlay: document.getElementById('loading-overlay'),
         loadingStatus: document.getElementById('loading-status'),
         progressBar: document.getElementById('progress-bar'),
-        
+
         damageTypesGrid: document.getElementById('damage-types-grid'),
-        
+
         statAffectedCount: document.getElementById('stat-affected-count'),
         statVialCount: document.getElementById('stat-vial-count') || document.getElementById('stat-homes-count'),
         statHighGravity: document.getElementById('stat-high-gravity'),
-        
+
         searchInput: document.getElementById('search-input'),
         clearSearchBtn: document.getElementById('clear-search-btn'),
         subregionFilter: document.getElementById('subregion-filter'),
         gravityTags: document.querySelectorAll('.gravity-tag'),
-        
+
         reportsList: document.getElementById('reports-list'),
         visibleReportsCount: document.getElementById('visible-reports-count'),
-        
+
         infoCard: document.getElementById('info-card'),
         infoSubregion: document.getElementById('info-subregion-text'),
         infoMunicipality: document.getElementById('info-municipality-text'),
@@ -74,6 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
         infoUbicacionRow: document.getElementById('info-ubicacion-row'),
         infoUbicacionText: document.getElementById('info-ubicacion-text'),
         infoDesc: document.getElementById('info-desc-text'),
+        infoAnotacionesRow: document.getElementById('info-anotaciones-row'),
+        infoAnotacionesText: document.getElementById('info-anotaciones-text'),
         closeInfoCardBtn: document.getElementById('close-info-card-btn'),
         zoomToMpioBtn: document.getElementById('zoom-to-mpio-btn'),
         redVialTypesGrid: document.getElementById('red-vial-types-grid'),
@@ -84,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ==========================================================================
        Helpers & Utility Functions
        ========================================================================== */
-    
+
     // Normalizar texto para comparación robusta (sin acentos, mayúsculas, espacios limpios)
     function normalizeName(str) {
         if (!str) return '';
@@ -134,16 +136,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 normalized.Tipo_Red_Vial = row[key].trim();
             } else if (normKey === 'UBICACION' || normKey === 'SECTOR') {
                 normalized.Ubicacion = row[key].trim();
+            } else if (normKey.includes('ANOTACION') || normKey.includes('SOLUCION') || normKey.includes('OBSERVACION') || normKey === 'NOTAS') {
+                normalized.Anotaciones = row[key].trim();
             }
         }
-        
+
         // Valores por defecto en caso de faltar
         if (!normalized.Municipio) return null;
         if (!normalized.Subregion) normalized.Subregion = 'Desconocida';
         if (!normalized.Tipo_Afectacion) normalized.Tipo_Afectacion = 'Infraestructura Afectada';
         if (!normalized.Gravedad) normalized.Gravedad = 'Media';
         if (!normalized.Descripcion) normalized.Descripcion = 'Sin descripción detallada disponible.';
-        
+        if (!normalized.Anotaciones) normalized.Anotaciones = '';
+
         return normalized;
     }
 
@@ -219,6 +224,188 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Grupo para los marcadores de alerta
         state.markersGroup = L.layerGroup().addTo(state.leafletMap);
+
+        // Añadir las 3 Cordilleras (Occidental, Central, Oriental)
+        addCordillerasLayer();
+
+        // Añadir el marcador animado con ondas de choque del epicentro del sismo (San José del Palmar, Chocó)
+        addSeismicEpicenterMarker();
+    }
+
+    // Renderizar la capa geográfica con las 3 Cordilleras de Colombia que atraviesan Antioquia
+    function addCordillerasLayer() {
+        if (!state.leafletMap) return;
+
+        state.cordillerasGroup = L.layerGroup(); // Inicialmente oculta, se activa desde la leyenda
+
+        const CORDILLERAS_DATA = [
+            {
+                name: 'Cordillera Occidental',
+                color: '#f97316', // Naranja brillante
+                glowColor: 'rgba(249, 115, 22, 0.4)',
+                labelPos: [6.60, -76.15],
+                points: [
+                    [5.40, -76.05],
+                    [5.65, -76.08],
+                    [5.95, -76.05],
+                    [6.25, -76.10],
+                    [6.60, -76.15],
+                    [7.05, -76.05],
+                    [7.65, -76.10]
+                ],
+                desc: 'Atraviesa el occidente de Antioquia (Nodal de Paramillo, Serranía del Abibe, Farallones del Citará).'
+            },
+            {
+                name: 'Cordillera Central',
+                color: '#10b981', // Verde esmeralda
+                glowColor: 'rgba(16, 185, 129, 0.4)',
+                labelPos: [6.55, -75.45],
+                points: [
+                    [5.55, -75.60],
+                    [5.90, -75.55],
+                    [6.25, -75.56],
+                    [6.55, -75.45],
+                    [6.95, -75.35],
+                    [7.35, -75.20]
+                ],
+                desc: 'Eje montañoso central (Valle de Aburrá, Altiplano de Santa Rosa de Osos, Belmira, Yarumal).'
+            }
+        ];
+
+        CORDILLERAS_DATA.forEach(cord => {
+            // Line 1: Aura / Sombra de resplandor
+            L.polyline(cord.points, {
+                color: cord.glowColor,
+                weight: 8,
+                opacity: 0.6,
+                lineCap: 'round',
+                interactive: false
+            }).addTo(state.cordillerasGroup);
+
+            // Line 2: Línea punteada de cresta montañosa
+            const mainLine = L.polyline(cord.points, {
+                color: cord.color,
+                weight: 3,
+                dashArray: '8, 6',
+                opacity: 0.9,
+                lineCap: 'round'
+            }).addTo(state.cordillerasGroup);
+
+            mainLine.bindTooltip(`<strong>🏔️ ${cord.name}</strong><br><span style="font-size: 0.7rem; color: #cbd5e1;">${cord.desc}</span>`, {
+                sticky: true,
+                className: 'cordillera-tooltip'
+            });
+
+            // Marcador de Etiqueta con icono de montaña
+            const labelHtml = `
+                <div class="cordillera-label-badge" style="--cord-color: ${cord.color}">
+                    <span>🏔️ ${cord.name}</span>
+                </div>
+            `;
+
+            const labelIcon = L.divIcon({
+                html: labelHtml,
+                className: 'cordillera-label-marker',
+                iconSize: [140, 24],
+                iconAnchor: [70, 12]
+            });
+
+            const marker = L.marker(cord.labelPos, { icon: labelIcon, zIndexOffset: 500 }).addTo(state.cordillerasGroup);
+            marker.bindTooltip(`<strong>🏔️ ${cord.name}</strong><br><span style="font-size: 0.7rem; color: #cbd5e1;">${cord.desc}</span>`, {
+                className: 'cordillera-tooltip'
+            });
+        });
+    }
+
+    // Agregar marcador animado con ondas expansivas del epicentro del sismo SGC
+    function addSeismicEpicenterMarker() {
+        if (!state.leafletMap) return;
+
+        // Coordenadas del epicentro: San José del Palmar, Chocó (M 7.4, Prof 96km)
+        const EPICENTER_COORDS = [4.9744, -76.2292];
+
+        const epicenterHtml = `
+            <div class="seismic-epicenter-container" title="Epicentro del Sismo - SGC M 7.4">
+                <div class="seismic-wave wave-1"></div>
+                <div class="seismic-wave wave-2"></div>
+                <div class="seismic-wave wave-3"></div>
+                <div class="seismic-wave wave-4"></div>
+                <div class="seismic-epicenter-dot">
+                    <i data-lucide="zap"></i>
+                </div>
+            </div>
+        `;
+
+        const customIcon = L.divIcon({
+            html: epicenterHtml,
+            className: 'seismic-epicenter-marker',
+            iconSize: [60, 60],
+            iconAnchor: [30, 30]
+        });
+
+        const epicenterMarker = L.marker(EPICENTER_COORDS, { icon: customIcon, zIndexOffset: 2000 }); // Inicialmente oculta, se activa desde la leyenda
+
+        const popupContent = `
+            <div class="epicenter-popup-card">
+                <div class="epicenter-badge">
+                    <i data-lucide="activity"></i> SGC • EVENTO SÍSMICO PRINCIPAL
+                </div>
+                <h3>San José del Palmar, Chocó</h3>
+                <div class="epicenter-stats-grid">
+                    <div class="epicenter-stat-box red">
+                        <span class="stat-lbl">MAGNITUD</span>
+                        <span class="stat-val">7.4 Mw</span>
+                    </div>
+                    <div class="epicenter-stat-box orange">
+                        <span class="stat-lbl">PROFUNDIDAD</span>
+                        <span class="stat-val">96 km</span>
+                    </div>
+                </div>
+                <p class="epicenter-detail-text">
+                    De acuerdo con el <strong>Servicio Geológico Colombiano (SGC)</strong>, el sismo tuvo una magnitud de 7,4 y una profundidad de 96 km. La gran magnitud e hipocentro generaron ondas sentidas en todo el departamento de Antioquia y el país.
+                </p>
+                <button class="btn btn-sm btn-primary btn-block" id="btn-focus-epicenter-popup">
+                    ⚡ Encuadrar Municipios Afectados
+                </button>
+            </div>
+        `;
+
+        epicenterMarker.bindPopup(popupContent, {
+            maxWidth: 310,
+            className: 'epicenter-leaflet-popup'
+        });
+
+        epicenterMarker.on('popupopen', () => {
+            if (window.lucide) window.lucide.createIcons();
+            const btnFocus = document.getElementById('btn-focus-epicenter-popup');
+            if (btnFocus) {
+                btnFocus.addEventListener('click', () => {
+                    fitMapToAffected();
+                });
+            }
+        });
+
+        state.epicenterMarker = epicenterMarker;
+
+        // Bindeo del botón de la barra flotante para volar al epicentro
+        const btnFly = document.getElementById('btn-fly-epicenter');
+        if (btnFly) {
+            btnFly.addEventListener('click', () => {
+                const toggleEpicenter = document.getElementById('toggle-layer-epicenter');
+                if (toggleEpicenter && !toggleEpicenter.checked) {
+                    toggleEpicenter.checked = true;
+                }
+                if (state.epicenterMarker && !state.leafletMap.hasLayer(state.epicenterMarker)) {
+                    state.leafletMap.addLayer(state.epicenterMarker);
+                }
+                state.leafletMap.flyTo(EPICENTER_COORDS, 9, {
+                    duration: 1.5
+                });
+                setTimeout(() => {
+                    epicenterMarker.openPopup();
+                }, 1500);
+            });
+        }
     }
 
     /* ==========================================================================
@@ -240,17 +427,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. Si es la primera vez, cargar en segundo plano sin bloquear la UI
             const response = await fetch('Municipios.geojson');
             if (!response.ok) throw new Error('No se pudo cargar Municipios.geojson');
-            
+
             const data = await response.json();
             state.geojsonRaw = data;
-            
+
             renderGeoJsonLayer();
             loadDepartmentOutline();
             loadInitialMockData();
 
             // 3. Guardar en IndexedDB para aperturas instantáneas futuras
             saveCachedGeoJSON(data);
-            
+
         } catch (error) {
             console.error('Error cargando GeoJSON:', error);
             loadInitialMockData();
@@ -262,16 +449,16 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('https://raw.githubusercontent.com/santiblanko/colombia.geojson/master/dpto.json');
             if (!response.ok) throw new Error('No se pudo descargar dpto.json');
-            
+
             const data = await response.json();
             const antioquiaFeature = data.features.find(f => {
                 const code = f.properties.DPTO || f.properties.DPTO_CCDGO || f.properties.dpto;
                 return code === '05';
             });
-            
+
             if (antioquiaFeature) {
                 // Dibujar dos capas concéntricas para simular un efecto de "resplandor" o glow premium:
-                
+
                 // 1. Línea externa gruesa translúcida (efecto aura/sombra)
                 L.geoJSON(antioquiaFeature, {
                     style: {
@@ -314,17 +501,17 @@ document.addEventListener('DOMContentLoaded', () => {
             onEachFeature: (feature, layer) => {
                 const mpioName = feature.properties.MPIO_NOMBR;
                 const normalized = normalizeName(mpioName);
-                
+
                 // Guardar referencia de la capa
                 state.layerMap[normalized] = layer;
-                
+
                 // Vincular tooltip de hover por defecto
                 layer.bindTooltip(mpioName, {
                     direction: 'auto',
                     sticky: true,
                     className: 'mpio-hover-tooltip'
                 });
-                
+
                 // Interacciones de la capa
                 layer.on({
                     mouseover: (e) => {
@@ -366,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasReport = state.filteredReports.find(r => normalizeName(r.Municipio) === normalized);
         const rawFeature = state.geojsonRaw ? state.geojsonRaw.features.find(f => normalizeName(f.properties.MPIO_NOMBR) === normalized) : null;
         const mpioName = rawFeature ? rawFeature.properties.MPIO_NOMBR : normalized;
-        
+
         if (hasReport) {
             layer.setStyle({
                 fillColor: getGravityColor(hasReport.Gravedad),
@@ -395,11 +582,11 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ==========================================================================
        Lógica de Carga y Procesamiento de Datos (Afectaciones)
        ========================================================================== */
-    
+
     // Cargar datos en tiempo real desde Google Sheets (o fallback local) al iniciar
     async function loadInitialMockData() {
         const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1ETyMqVB029hJGHpnuHNE-eTKYoO1oFIroy4rF_UHj2I/export?format=csv';
-        
+
         try {
             console.log('Intentando conectar con Google Sheets en tiempo real...');
             const response = await fetch(GOOGLE_SHEET_URL_fallback_handler(GOOGLE_SHEET_CSV_URL));
@@ -407,7 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const csvText = await response.text();
                 parseAndLoadData(csvText, 'csv');
                 console.log('Datos cargados exitosamente desde Google Sheets.');
-                
+
                 // Actualizar el texto de estado en el indicador
                 const statusText = document.querySelector('.status-text');
                 if (statusText) statusText.innerText = 'Google Sheets Conectado';
@@ -416,13 +603,13 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error('Respuesta HTTP no exitosa al consultar Google Sheets');
         } catch (e) {
             console.warn('Fallo la conexión en vivo con Google Sheets. Cargando base de datos local:', e);
-            
+
             try {
                 const localResponse = await fetch('afectaciones-ejemplo.csv');
                 if (localResponse.ok) {
                     const csvText = await localResponse.text();
                     parseAndLoadData(csvText, 'csv');
-                    
+
                     const statusText = document.querySelector('.status-text');
                     if (statusText) statusText.innerText = 'Datos Locales';
                 } else {
@@ -464,7 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             state.reports = cleanReports;
             state.selectedMpio = null; // Reiniciar selección
-            
+
             // Actualizar filtros al cargar datos
             if (dom.subregionFilter) dom.subregionFilter.value = 'all';
             state.activeFilters.subregion = 'all';
@@ -473,12 +660,12 @@ document.addEventListener('DOMContentLoaded', () => {
             state.activeFilters.damageType = 'all';
             state.activeFilters.redVialCategory = 'all';
             state.activeFilters.tipoRedVial = 'all';
-            
+
             updateDashboard();
-            
+
             // Animación y ajuste de zoom en el mapa para ver los reportes
             fitMapToAffected();
-            
+
         } catch (e) {
             console.error('Error parseando archivo:', e);
             alert('Error al leer el archivo. Comprueba la estructura del formato.');
@@ -492,7 +679,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const bounds = L.latLngBounds();
         let validLayers = 0;
-        
+
         activeMpios.forEach(mpio => {
             const layer = state.layerMap[mpio];
             if (layer) {
@@ -521,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderDamageTypeCards();
         renderRedVialTypeCards();
         renderSubregionChart();
-        
+
         // Restablecer estilos de todas las capas municipales según los filtros actuales
         Object.keys(state.layerMap).forEach(normalized => {
             if (state.selectedMpio !== normalized) {
@@ -533,18 +720,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Filtrar los datos en base a los inputs del usuario
     function applyFilters() {
         const { subregion, gravity, search, damageType, redVialCategory, tipoRedVial } = state.activeFilters;
-        
+
         state.filteredReports = state.reports.filter(report => {
             // Filtro por subregión
-            const matchSubregion = subregion === 'all' || 
+            const matchSubregion = subregion === 'all' ||
                 normalizeName(report.Subregion) === normalizeName(subregion);
-            
+
             // Filtro por gravedad
-            const matchGravity = gravity === 'all' || 
+            const matchGravity = gravity === 'all' ||
                 report.Gravedad === gravity;
-                
+
             // Filtro por tipo de afectación (tarjetas interactivas no viales)
-            const matchDamageType = damageType === 'all' || 
+            const matchDamageType = damageType === 'all' ||
                 normalizeName(report.Tipo_Afectacion) === normalizeName(damageType);
 
             // Filtro por categoría de Red Vial (Primaria, Secundaria, Terciaria, Urbana)
@@ -559,15 +746,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Filtro por tipo de elemento red vial
             const matchTipoRedVial = !tipoRedVial || tipoRedVial === 'all' ||
                 normalizeName(report.Tipo_Red_Vial || '') === tipoRedVial;
-                
+
             // Filtro por búsqueda de texto
             const normSearch = normalizeName(search);
-            const matchSearch = !normSearch || 
-                normalizeName(report.Municipio).includes(normSearch) || 
+            const matchSearch = !normSearch ||
+                normalizeName(report.Municipio).includes(normSearch) ||
                 normalizeName(report.Subregion).includes(normSearch) ||
                 normalizeName(report.Tipo_Afectacion).includes(normSearch) ||
                 normalizeName(report.Red_Vial || '').includes(normSearch) ||
-                normalizeName(report.Ubicacion || '').includes(normSearch);
+                normalizeName(report.Ubicacion || '').includes(normSearch) ||
+                normalizeName(report.Anotaciones || '').includes(normSearch);
 
             return matchSubregion && matchGravity && matchDamageType && matchRedVialCategory && matchTipoRedVial && matchSearch;
         });
@@ -712,7 +900,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const row = document.createElement('div');
             row.className = `subregion-bar-row ${isActive ? 'active' : ''}`;
-            
+
             row.innerHTML = `
                 <div class="subregion-bar-header">
                     <span class="subregion-bar-name">${sub}</span>
@@ -761,14 +949,14 @@ document.addEventListener('DOMContentLoaded', () => {
         state.filteredReports.forEach(report => {
             const normalized = normalizeName(report.Municipio);
             const layer = state.layerMap[normalized];
-            
+
             if (layer) {
                 // Obtener el centro del bounding box del polígono municipal
                 const center = layer.getBounds().getCenter();
                 const color = getGravityColor(report.Gravedad);
                 const isVial = isVialType(report.Tipo_Afectacion);
                 const redVialLabel = report.Red_Vial ? report.Red_Vial : 'VÍA';
-                
+
                 // HTML Personalizado para el círculo de alerta pulsante (con tipo de Red Vial y municipio)
                 const markerHtml = `
                     <div class="pulse-marker-wrapper ${isVial ? 'priority-vial-marker' : ''}" style="--marker-color: ${color}">
@@ -777,7 +965,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${isVial ? `<span class="vial-marker-indicator" title="Afectación en ${redVialLabel}">${redVialLabel}<br><span class="vial-marker-mpio">${report.Municipio}</span></span>` : ''}
                     </div>
                 `;
-                
+
                 const customIcon = L.divIcon({
                     html: markerHtml,
                     className: `custom-pulse-icon ${isVial ? 'vial-custom-icon' : ''}`,
@@ -786,7 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 const marker = L.marker(center, { icon: customIcon });
-                
+
                 // Al hacer clic en el marcador, seleccionar el municipio
                 marker.on('click', (e) => {
                     if (e) {
@@ -811,10 +999,10 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.visibleReportsCount.innerText = state.filteredReports.length;
 
         // Mostrar barra indicadora de filtro activo con botón de reset si hay filtros seleccionados
-        const hasActiveFilter = (state.activeFilters.redVialCategory && state.activeFilters.redVialCategory !== 'all') || 
-                                (state.activeFilters.subregion && state.activeFilters.subregion !== 'all') || 
-                                (state.activeFilters.tipoRedVial && state.activeFilters.tipoRedVial !== 'all') ||
-                                (state.activeFilters.damageType && state.activeFilters.damageType !== 'all');
+        const hasActiveFilter = (state.activeFilters.redVialCategory && state.activeFilters.redVialCategory !== 'all') ||
+            (state.activeFilters.subregion && state.activeFilters.subregion !== 'all') ||
+            (state.activeFilters.tipoRedVial && state.activeFilters.tipoRedVial !== 'all') ||
+            (state.activeFilters.damageType && state.activeFilters.damageType !== 'all');
 
         if (hasActiveFilter) {
             let activeLabel = 'Filtro activo';
@@ -858,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const bVial = isVialType(b.Tipo_Afectacion);
             if (aVial && !bVial) return -1;
             if (!aVial && bVial) return 1;
-            
+
             const gA = gravityWeight[a.Gravedad] || 0;
             const gB = gravityWeight[b.Gravedad] || 0;
             return gB - gA;
@@ -869,12 +1057,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const color = getGravityColor(report.Gravedad);
             const rgb = getGravityRgb(report.Gravedad);
             const isVial = isVialType(report.Tipo_Afectacion);
-            
+
             const card = document.createElement('div');
             card.className = `report-card ${state.selectedMpio === normalizedName ? 'active' : ''} ${isVial ? 'priority-vial-card' : ''}`;
             card.style.setProperty('--gravity-color', color);
             card.style.setProperty('--gravity-color-rgb', rgb);
-            
+
             if (state.selectedMpio === normalizedName) {
                 card.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
                 card.style.border = `1px solid ${color}`;
@@ -890,6 +1078,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="card-subregion">${report.Subregion}${report.Ubicacion ? ` • 📍 ${report.Ubicacion}` : ''}</div>
                 <div class="card-desc">${report.Tipo_Afectacion} - ${report.Descripcion}</div>
+                ${report.Anotaciones ? `<div class="card-anotaciones"><i data-lucide="clipboard-check" class="icon-inline-xs"></i> <strong>Anotación:</strong> ${report.Anotaciones}</div>` : ''}
             `;
 
             card.addEventListener('click', () => {
@@ -988,7 +1177,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const highCount = typeReports.filter(r => r.Gravedad === 'Alta').length;
             const lowCount = typeReports.filter(r => r.Gravedad === 'Baja').length;
             let cardColor = 'var(--accent-orange)';
-            
+
             if (highCount > typeReports.length / 2) {
                 cardColor = 'var(--accent-red)';
             } else if (lowCount > typeReports.length / 2) {
@@ -997,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const card = document.createElement('div');
             card.className = `damage-type-card ${isActive ? 'active' : ''}`;
-            
+
             if (isActive) {
                 card.style.borderColor = cardColor;
                 card.style.boxShadow = `0 0 14px ${cardColor}40`;
@@ -1077,10 +1266,10 @@ document.addEventListener('DOMContentLoaded', () => {
             dom.infoSubregion.innerText = report.Subregion;
             dom.infoMunicipality.innerText = report.Municipio;
             dom.infoType.innerText = report.Tipo_Afectacion;
-            
+
             dom.infoGravity.innerText = report.Gravedad;
             dom.infoDesc.innerText = report.Descripcion;
-            
+
             // Mostrar u ocultar filas para Red Vial y Ubicación
             if (dom.infoRedVialRow) {
                 if (report.Red_Vial) {
@@ -1099,7 +1288,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     dom.infoUbicacionRow.style.display = 'none';
                 }
             }
-            
+
+            // Mostrar u ocultar fila de Anotaciones / Soluciones
+            if (dom.infoAnotacionesRow) {
+                if (report.Anotaciones && report.Anotaciones.trim() !== '') {
+                    dom.infoAnotacionesText.innerText = report.Anotaciones;
+                    dom.infoAnotacionesRow.style.display = 'flex';
+                } else {
+                    dom.infoAnotacionesRow.style.display = 'none';
+                }
+            }
+
             // Estilo de la insignia de gravedad en la tarjeta
             dom.infoGravity.style.backgroundColor = `rgba(${getGravityRgb(report.Gravedad)}, 0.15)`;
             dom.infoGravity.style.color = getGravityColor(report.Gravedad);
@@ -1109,11 +1308,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             if (dom.infoRedVialRow) dom.infoRedVialRow.style.display = 'none';
             if (dom.infoUbicacionRow) dom.infoUbicacionRow.style.display = 'none';
+            if (dom.infoAnotacionesRow) dom.infoAnotacionesRow.style.display = 'none';
             // Municipio seleccionado no tiene reportes en el sismo
             const rawFeature = state.geojsonRaw.features.find(f => normalizeName(f.properties.MPIO_NOMBR) === normalized);
             const subregion = rawFeature ? rawFeature.properties.SUBREGION : 'Desconocida';
             const name = rawFeature ? rawFeature.properties.MPIO_NOMBR : normalized;
-            
+
             dom.infoSubregion.innerText = subregion;
             dom.infoMunicipality.innerText = name;
             dom.infoType.innerText = 'Sin Afectaciones Reportadas';
@@ -1123,7 +1323,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dom.infoGravity.style.backgroundColor = 'rgba(255,255,255,0.05)';
             dom.infoGravity.style.color = 'var(--text-secondary)';
             dom.infoGravity.style.border = '1px solid var(--border-color)';
-            
+
             dom.infoCard.classList.remove('hidden');
         }
 
@@ -1155,7 +1355,8 @@ document.addEventListener('DOMContentLoaded', () => {
             resetLayerStyle(oldMpio);
         }
         dom.infoCard.classList.add('hidden');
-        
+        if (dom.infoAnotacionesRow) dom.infoAnotacionesRow.style.display = 'none';
+
         const cards = dom.reportsList.querySelectorAll('.report-card');
         cards.forEach(card => card.classList.remove('active'));
     }
@@ -1207,7 +1408,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ==========================================================================
        Manejadores de Eventos del DOM y UI
        ========================================================================== */
-    
+
     // Configurar filtros y buscador de la UI
     function setupFilters() {
         if (dom.subregionFilter) {
@@ -1241,7 +1442,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Botón flotante para restablecer la vista completa de Antioquia
         dom.resetMapBtn.addEventListener('click', () => {
             deselectAll();
-            
+
             if (state.filteredReports.length > 0) {
                 fitMapToAffected();
             } else if (state.geojsonLayer) {
@@ -1260,6 +1461,54 @@ document.addEventListener('DOMContentLoaded', () => {
             dom.exportPdfBtn.addEventListener('click', exportVialPdfReport);
         }
 
+        // Control de Capas desde la Leyenda: Cordilleras
+        const toggleCordilleras = document.getElementById('toggle-layer-cordilleras');
+        if (toggleCordilleras) {
+            toggleCordilleras.checked = false;
+            toggleCordilleras.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    if (state.cordillerasGroup && !state.leafletMap.hasLayer(state.cordillerasGroup)) {
+                        state.leafletMap.addLayer(state.cordillerasGroup);
+                    }
+                } else {
+                    if (state.cordillerasGroup && state.leafletMap.hasLayer(state.cordillerasGroup)) {
+                        state.leafletMap.removeLayer(state.cordillerasGroup);
+                    }
+                }
+            });
+        }
+
+        // Control de Capas desde la Leyenda: Epicentro del Sismo
+        const toggleEpicenter = document.getElementById('toggle-layer-epicenter');
+        const epicenterBanner = document.getElementById('epicenter-floating-banner');
+        if (toggleEpicenter) {
+            toggleEpicenter.checked = false;
+            toggleEpicenter.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    if (state.epicenterMarker && !state.leafletMap.hasLayer(state.epicenterMarker)) {
+                        state.leafletMap.addLayer(state.epicenterMarker);
+                    }
+                    if (epicenterBanner) epicenterBanner.classList.remove('hidden');
+                } else {
+                    if (state.epicenterMarker && state.leafletMap.hasLayer(state.epicenterMarker)) {
+                        state.leafletMap.removeLayer(state.epicenterMarker);
+                    }
+                    if (epicenterBanner) epicenterBanner.classList.add('hidden');
+                }
+            });
+        }
+
+        // Minimizar / Expandir Panel de Leyenda
+        const btnLegendCollapse = document.getElementById('btn-legend-collapse');
+        const legendPanelHeader = document.getElementById('legend-panel-header');
+        const legendPanelBody = document.getElementById('legend-panel-body');
+        if (legendPanelHeader && legendPanelBody) {
+            legendPanelHeader.addEventListener('click', () => {
+                legendPanelBody.classList.toggle('collapsed');
+                if (btnLegendCollapse) btnLegendCollapse.classList.toggle('rotated');
+            });
+        }
+
         // Clicar fuera de los municipios para deseleccionar
         state.leafletMap.on('click', () => {
             deselectAll();
@@ -1269,11 +1518,11 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ==========================================================================
        Generación de Mapa Canvas y Reporte PDF (Infraestructura Vial)
        ========================================================================== */
-    
+
     /* ==========================================================================
        Generación de Mapa y Gráficos Nativos Vectoriales para PDF (100% Vectorial)
        ========================================================================== */
-    
+
     // Dibujar Mapa Vectorial de Antioquia en PDF (Limpio, sin fondo ni cuadrículas, puntos compactos)
     function drawAntioquiaVectorMap(doc, mapX, mapY, mapWidth, mapHeight, vialReports) {
         if (!state.geojsonRaw || !state.geojsonRaw.features) return;
@@ -1333,8 +1582,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const mpioNameNorm = normalizeName(feature.properties.MPIO_NOMBR || '');
             const isAffected = affectedMap.hasOwnProperty(mpioNameNorm);
 
-            const polygons = feature.geometry.type === 'Polygon' 
-                ? [feature.geometry.coordinates] 
+            const polygons = feature.geometry.type === 'Polygon'
+                ? [feature.geometry.coordinates]
                 : feature.geometry.coordinates;
 
             polygons.forEach(polygon => {
@@ -1386,7 +1635,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Punto rojo compacto (radio 1.1mm)
             doc.setFillColor(239, 68, 68);
             doc.circle(cX, cY, 1.1, 'F');
-            
+
             // Punto central blanco fino
             doc.setFillColor(255, 255, 255);
             doc.circle(cX, cY, 0.4, 'F');
@@ -1397,6 +1646,59 @@ document.addEventListener('DOMContentLoaded', () => {
             doc.setTextColor(30, 41, 59); // #1e293b
             doc.text(mpioName, cX, cY - 1.8, { align: 'center' });
         });
+
+        // 2.5 Dibujar las Cordilleras de los Andes en Vector PDF (Solo si la capa está encendida)
+        const cordillerasCheckbox = document.getElementById('toggle-layer-cordilleras');
+        const isCordillerasActive = cordillerasCheckbox ? cordillerasCheckbox.checked : (state.leafletMap && state.cordillerasGroup && state.leafletMap.hasLayer(state.cordillerasGroup));
+
+        if (isCordillerasActive) {
+            const CORDILLERAS_PDF = [
+                { name: 'Cord. Occidental', pts: [[5.65, -76.08], [6.25, -76.10], [6.60, -76.15], [7.05, -76.05]], color: [249, 115, 22] },
+                { name: 'Cord. Central', pts: [[5.55, -75.60], [6.25, -75.56], [6.55, -75.45], [7.35, -75.20]], color: [16, 185, 129] }
+            ];
+
+            CORDILLERAS_PDF.forEach(cord => {
+                const pdfPts = cord.pts.map(([lat, lng]) => project(lng, lat));
+                doc.setDrawColor(...cord.color);
+                doc.setLineWidth(0.3);
+                for (let i = 1; i < pdfPts.length; i++) {
+                    doc.line(pdfPts[i - 1][0], pdfPts[i - 1][1], pdfPts[i][0], pdfPts[i][1]);
+                }
+                const mid = pdfPts[Math.floor(pdfPts.length / 2)];
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(4.5);
+                doc.setTextColor(...cord.color);
+                doc.text(`🏔️ ${cord.name}`, mid[0], mid[1] - 1);
+            });
+        }
+
+        // 2.6 Dibujar el Epicentro del Sismo en Vector PDF (Solo si la capa está encendida)
+        const epicenterCheckbox = document.getElementById('toggle-layer-epicenter');
+        const isEpicenterActive = epicenterCheckbox ? epicenterCheckbox.checked : (state.leafletMap && state.epicenterMarker && state.leafletMap.hasLayer(state.epicenterMarker));
+
+        if (isEpicenterActive) {
+            const EPICENTER_LATLNG = [4.9744, -76.2292];
+            const [eX, eY] = project(EPICENTER_LATLNG[1], EPICENTER_LATLNG[0]);
+
+            if (eX >= mapX && eX <= mapX + mapWidth && eY >= mapY && eY <= mapY + mapHeight) {
+                // Ondas concéntricas sismo
+                doc.setDrawColor(239, 68, 68);
+                doc.setLineWidth(0.2);
+                doc.circle(eX, eY, 3.5, 'D');
+                doc.circle(eX, eY, 2.0, 'D');
+
+                // Punto central
+                doc.setFillColor(239, 68, 68);
+                doc.circle(eX, eY, 1.2, 'F');
+                doc.setFillColor(255, 255, 255);
+                doc.circle(eX, eY, 0.4, 'F');
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(4.5);
+                doc.setTextColor(239, 68, 68);
+                doc.text('⚡ Epicentro SGC M 7.4', eX, eY - 4.2, { align: 'center' });
+            }
+        }
 
         // 3. Leyenda del Mapa Vectorial (Estilo limpio blanco)
         const legX = mapX + mapWidth - 52;
@@ -1620,6 +1922,57 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // --- SECCIÓN 4: ANOTACIONES Y/O SOLUCIONES (Solo municipios con anotación) ---
+        const reportsWithAnotaciones = vialReports.filter(r => r.Anotaciones && r.Anotaciones.trim() !== '');
+
+        if (reportsWithAnotaciones.length > 0) {
+            let sec4Y = doc.lastAutoTable.finalY + 8;
+            if (sec4Y + 25 > 275) {
+                doc.addPage();
+                sec4Y = 20;
+            }
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(15, 23, 42);
+            doc.text('4. Anotaciones y/o Soluciones', 14, sec4Y);
+
+            const anotacionesBody = reportsWithAnotaciones.map((r, idx) => [
+                (idx + 1).toString(),
+                r.Municipio || '-',
+                r.Subregion || '-',
+                r.Anotaciones.trim()
+            ]);
+
+            doc.autoTable({
+                startY: sec4Y + 3,
+                head: [['N°', 'Municipio', 'Subregión', 'Anotación']],
+                body: anotacionesBody,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [239, 68, 68],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 8,
+                    halign: 'center'
+                },
+                bodyStyles: {
+                    fontSize: 7.5,
+                    cellPadding: 2.5,
+                    textColor: [30, 41, 59]
+                },
+                columnStyles: {
+                    0: { cellWidth: 8, halign: 'center' },
+                    1: { cellWidth: 32, fontStyle: 'bold' },
+                    2: { cellWidth: 30 },
+                    3: { cellWidth: 'auto' }
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 250, 252]
+                }
+            });
+        }
+
         // Pie de página en todas las páginas
         const pageCount = doc.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
@@ -1632,7 +1985,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Descargar PDF
-        const fileName = `Reporte_Infraestructura_Vial_Antioquia_${now.toISOString().slice(0,10)}.pdf`;
+        const fileName = `Reporte_Infraestructura_Vial_Antioquia_${now.toISOString().slice(0, 10)}.pdf`;
         doc.save(fileName);
     }
 
@@ -1644,10 +1997,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setupMobileNav();
         setupFilters();
         setupInteractions();
-        
+
         // Cargar el GeoJSON
         loadGeoJson();
-        
+
         // Inicializar iconos Lucide
         lucide.createIcons();
     }

@@ -896,50 +896,222 @@ body {
     }
 }
 
-/* Legend */
-.map-legend {
-    display: none !important;
+/* ==========================================================================
+   Map Legend & Layer Toggle Panel (Glassmorphic & Interactive)
+   ========================================================================== */
+.map-legend-panel {
     position: absolute;
-    bottom: 24px;
-    right: 24px;
+    top: 20px;
+    right: 20px;
     z-index: 1000;
-    padding: 1rem;
-    max-width: 240px;
+    width: 220px;
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: var(--transition-smooth);
 }
-.map-legend h4 {
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 0.75rem;
-    color: var(--text-secondary);
-}
-.legend-items {
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-}
-.legend-item {
+
+.legend-panel-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    font-size: 0.75rem;
+    justify-content: space-between;
+    padding: 0.65rem 0.85rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    user-select: none;
+}
+
+.legend-header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #f1f5f9;
+    letter-spacing: 0.3px;
+}
+
+.legend-header-title i {
+    color: var(--accent-blue);
+}
+
+.btn-legend-collapse {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.25s ease, color 0.2s ease;
+    padding: 2px;
+}
+
+.btn-legend-collapse:hover {
     color: var(--text-primary);
 }
-.legend-circle {
+
+.btn-legend-collapse.rotated {
+    transform: rotate(180deg);
+}
+
+.legend-panel-body {
+    padding: 0.75rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+    max-height: 350px;
+    opacity: 1;
+}
+
+.legend-panel-body.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding: 0 0.85rem;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.legend-section-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+}
+
+.legend-layer-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.layer-toggle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.35rem 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.layer-toggle-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.layer-toggle-info {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.layer-icon-symbol {
+    font-size: 0.85rem;
+}
+
+.layer-toggle-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Custom Switch Toggle */
+.custom-switch-wrap {
+    position: relative;
+    width: 32px;
+    height: 18px;
+}
+
+.custom-switch-wrap input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.15);
+    transition: 0.25s;
+    border-radius: 18px;
+}
+
+.switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 12px;
+    width: 12px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #ffffff;
+    transition: 0.25s;
+    border-radius: 50%;
+}
+
+.custom-switch-wrap input:checked + .switch-slider {
+    background-color: var(--accent-blue);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.custom-switch-wrap input:checked + .switch-slider:before {
+    transform: translateX(14px);
+}
+
+/* Severity Legend */
+.legend-severity-items {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.35rem 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.legend-sev-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.legend-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
     display: inline-block;
 }
-.pulse-ring-example {
-    position: relative;
+
+.dot-alta {
+    background-color: #ef4444;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
 }
-.legend-line {
-    width: 20px;
-    height: 2px;
-    background-color: var(--accent-blue);
-    border-radius: 1px;
-    display: inline-block;
+
+.dot-media {
+    background-color: #f97316;
+    box-shadow: 0 0 6px rgba(249, 115, 22, 0.6);
+}
+
+.dot-baja {
+    background-color: #3b82f6;
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
 }
 
 /* Info Card Floating Details */
@@ -1032,6 +1204,45 @@ body {
     font-size: 0.82rem;
     color: var(--text-secondary);
     line-height: 1.4;
+}
+.info-anotaciones-box {
+    background: rgba(16, 185, 129, 0.06);
+    border: 1px solid rgba(16, 185, 129, 0.28);
+    box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.05);
+}
+.info-anotaciones-box .info-label {
+    color: #34d399;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
+}
+.info-anotaciones-text {
+    color: #f1f5f9;
+    font-weight: 500;
+}
+.card-anotaciones {
+    font-size: 0.73rem;
+    color: #6ee7b7;
+    margin-top: 0.35rem;
+    background: rgba(16, 185, 129, 0.08);
+    padding: 0.25rem 0.45rem;
+    border-radius: 4px;
+    border-left: 2px solid #10b981;
+    line-height: 1.35;
+}
+.icon-inline {
+    width: 13px;
+    height: 13px;
+    display: inline-block;
+    vertical-align: middle;
+}
+.icon-inline-xs {
+    width: 11px;
+    height: 11px;
+    display: inline-block;
+    vertical-align: -1px;
+    margin-right: 2px;
 }
 .info-card-footer {
     display: flex;
@@ -1349,12 +1560,10 @@ body {
         right: 12px;
     }
 
-    .map-legend {
-        bottom: 12px;
+    .map-legend-panel {
+        top: 12px;
         right: 12px;
-        max-width: 160px;
-        padding: 0.5rem 0.65rem;
-        font-size: 0.68rem;
+        width: 175px;
     }
 }
 
@@ -1492,4 +1701,289 @@ body {
     border: 1px solid rgba(56, 189, 248, 0.3);
     padding: 0.15rem 0.45rem;
     border-radius: 4px;
+}
+
+/* ==========================================================================
+   Seismic Shockwave Epicenter Animation & Styling (SGC 7.4 Mw)
+   ========================================================================== */
+.seismic-epicenter-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.seismic-epicenter-container {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.seismic-epicenter-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ef4444 0%, #b91c1c 100%);
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.9), 0 0 30px rgba(239, 68, 68, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    z-index: 10;
+    transition: transform 0.3s ease;
+}
+
+.seismic-epicenter-dot i {
+    width: 12px;
+    height: 12px;
+    stroke-width: 2.5;
+}
+
+.seismic-epicenter-container:hover .seismic-epicenter-dot {
+    transform: scale(1.25);
+    box-shadow: 0 0 24px rgba(239, 68, 68, 1);
+}
+
+.seismic-wave {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60px;
+    height: 60px;
+    margin-top: -30px;
+    margin-left: -30px;
+    border-radius: 50%;
+    border: 2px solid rgba(239, 68, 68, 0.50);
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.35), inset 0 0 10px rgba(239, 68, 68, 0.20);
+    animation: seismicPulseWave 3.6s cubic-bezier(0.1, 0.75, 0.3, 1) infinite;
+    pointer-events: none;
+    opacity: 0.50; /* Transparencia del 50% */
+}
+
+.seismic-wave.wave-1 { animation-delay: 0s; }
+.seismic-wave.wave-2 { animation-delay: 0.9s; }
+.seismic-wave.wave-3 { animation-delay: 1.8s; }
+.seismic-wave.wave-4 { animation-delay: 2.7s; }
+
+@keyframes seismicPulseWave {
+    0% {
+        transform: scale(0.15);
+        opacity: 0.50; /* 50% transparencia */
+        border-width: 3px;
+    }
+    40% {
+        opacity: 0.40;
+    }
+    80% {
+        opacity: 0.20;
+    }
+    100% {
+        transform: scale(8.5);
+        opacity: 0;
+        border-width: 1px;
+    }
+}
+
+/* Floating Banner for Epicenter in Map */
+.epicenter-floating-banner {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    z-index: 1000;
+    padding: 0.5rem 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+}
+
+.epicenter-banner-pulse {
+    display: flex;
+    align-items: center;
+}
+
+.red-pulse {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #ef4444;
+    box-shadow: 0 0 10px #ef4444;
+    animation: redPulseAnim 1.5s infinite;
+}
+
+@keyframes redPulseAnim {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 8px #ef4444; }
+    50% { transform: scale(1.3); box-shadow: 0 0 16px #ef4444; }
+}
+
+.epicenter-banner-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.epicenter-banner-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.3px;
+}
+
+.epicenter-banner-loc {
+    font-size: 0.68rem;
+    color: #fca5a5;
+    font-weight: 500;
+}
+
+.btn-banner-fly {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #ffffff;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.btn-banner-fly:hover {
+    background: #ef4444;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+}
+
+/* Epicenter Leaflet Popup Card */
+.epicenter-leaflet-popup .leaflet-popup-content-wrapper {
+    background: rgba(15, 23, 42, 0.96) !important;
+    border: 1px solid rgba(239, 68, 68, 0.5) !important;
+    box-shadow: 0 10px 32px rgba(239, 68, 68, 0.25), 0 0 40px rgba(0,0,0,0.8) !important;
+    border-radius: 14px !important;
+}
+
+.epicenter-popup-card {
+    padding: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.epicenter-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    padding: 0.2rem 0.5rem;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: fit-content;
+    letter-spacing: 0.5px;
+}
+
+.epicenter-popup-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+
+.epicenter-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.epicenter-stat-box {
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.epicenter-stat-box.red {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.epicenter-stat-box.orange {
+    background: rgba(249, 115, 22, 0.15);
+    border: 1px solid rgba(249, 115, 22, 0.35);
+}
+
+.epicenter-stat-box .stat-lbl {
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.epicenter-stat-box .stat-val {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.epicenter-detail-text {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.35;
+    margin: 0;
+}
+
+/* ==========================================================================
+   Cordilleras Mountain Range Map Styling
+   ========================================================================== */
+.cordillera-label-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.cordillera-label-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.55rem;
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--cord-color, #10b981);
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.cordillera-label-badge:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 16px var(--cord-color, #10b981);
+}
+
+.cordillera-label-badge span {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.3px;
+}
+
+.cordillera-tooltip {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+    border-radius: 8px !important;
+    font-family: var(--font-main) !important;
+    font-size: 0.75rem !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6) !important;
 }

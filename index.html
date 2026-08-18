@@ -119,6 +119,20 @@
             <!-- Leaflet Map -->
             <div id="map"></div>
 
+            <!-- Floating Epicenter Info Banner (Oculto por defecto) -->
+            <div class="epicenter-floating-banner glass-panel hidden" id="epicenter-floating-banner">
+                <div class="epicenter-banner-pulse">
+                    <span class="pulse-dot red-pulse"></span>
+                </div>
+                <div class="epicenter-banner-info">
+                    <span class="epicenter-banner-tag">SISMO SGC: M 7.4 | Prof. 96 km</span>
+                    <span class="epicenter-banner-loc">San José del Palmar, Chocó</span>
+                </div>
+                <button class="btn-banner-fly" id="btn-fly-epicenter" title="Centrar mapa en el epicentro">
+                    <i data-lucide="crosshair"></i>
+                </button>
+            </div>
+
             <!-- Floating Map Controls -->
             <div class="map-controls-floating">
                 <button class="btn-floating" id="reset-map-btn" title="Restablecer vista de Antioquia">
@@ -128,6 +142,62 @@
                     <i data-lucide="file-down"></i>
                     <span class="btn-floating-label">Exportar PDF Vial</span>
                 </button>
+            </div>
+
+            <!-- Floating Map Legend & Layer Control -->
+            <div class="map-legend-panel glass-panel" id="map-legend-panel">
+                <div class="legend-panel-header" id="legend-panel-header">
+                    <div class="legend-header-title">
+                        <i data-lucide="layers" class="icon-sm"></i>
+                        <span>Capas y Leyenda</span>
+                    </div>
+                    <button class="btn-legend-collapse" id="btn-legend-collapse" title="Minimizar / Expandir">
+                        <i data-lucide="chevron-down" class="icon-sm"></i>
+                    </button>
+                </div>
+                <div class="legend-panel-body" id="legend-panel-body">
+                    <!-- Switches de Capas Geográficas -->
+                    <div class="legend-section-title">Mostrar Capas</div>
+                    <div class="legend-layer-toggles">
+                        <label class="layer-toggle-item" for="toggle-layer-cordilleras">
+                            <div class="layer-toggle-info">
+                                <span class="layer-icon-symbol">🏔️</span>
+                                <span class="layer-toggle-label">Cordilleras</span>
+                            </div>
+                            <div class="custom-switch-wrap">
+                                <input type="checkbox" id="toggle-layer-cordilleras" class="layer-checkbox">
+                                <span class="switch-slider"></span>
+                            </div>
+                        </label>
+                        <label class="layer-toggle-item" for="toggle-layer-epicenter">
+                            <div class="layer-toggle-info">
+                                <span class="layer-icon-symbol">⚡</span>
+                                <span class="layer-toggle-label">Epicentro Sismo</span>
+                            </div>
+                            <div class="custom-switch-wrap">
+                                <input type="checkbox" id="toggle-layer-epicenter" class="layer-checkbox">
+                                <span class="switch-slider"></span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Simbología de Gravedad -->
+                    <div class="legend-section-title">Nivel de Gravedad</div>
+                    <div class="legend-severity-items">
+                        <div class="legend-sev-item">
+                            <span class="legend-dot dot-alta"></span>
+                            <span>Alta</span>
+                        </div>
+                        <div class="legend-sev-item">
+                            <span class="legend-dot dot-media"></span>
+                            <span>Media</span>
+                        </div>
+                        <div class="legend-sev-item">
+                            <span class="legend-dot dot-baja"></span>
+                            <span>Baja</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Floating Info Card (Shows details when a municipality is clicked) -->
@@ -159,6 +229,10 @@
                     <div class="info-desc-box">
                         <span class="info-label">Descripción del Impacto:</span>
                         <p class="info-desc-text" id="info-desc-text">Ejemplo de la información a mostrar sobre el municipio.</p>
+                    </div>
+                    <div class="info-desc-box info-anotaciones-box" id="info-anotaciones-row" style="display: none;">
+                        <span class="info-label"><i data-lucide="clipboard-check" class="icon-inline"></i> Anotaciones / Soluciones:</span>
+                        <p class="info-desc-text info-anotaciones-text" id="info-anotaciones-text">-</p>
                     </div>
                 </div>
                 <div class="info-card-footer">

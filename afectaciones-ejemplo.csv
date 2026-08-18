@@ -1,19 +1,19 @@
-ID,MUNICIPIO,SUBREGIÓN,TIPO_AFECTACIÓN,GRAVEDAD,DESCRIPCIÓN,RED VIAL,TIPO RED VIAL,UBICACIÓN
-1,TÁMESIS,SUROESTE,INFRAESTRUCTURA VIVIENDAS,BAJA,VIVIENDAS E IGLESIA RECIBIERON AFECTACIONES,,,
-2,VENECIA,SUROESTE,INFRAESTRUCTURA RELIGIOSA,MEDIA,VIVIENDAS E IGLESIA RECIBIERON AFECTACIONES,,,
-3,CONCORDIA,SUROESTE,INFRAESTRUCTURA EDUCATIVA,ALTA,"Afectaciones en Vivienda y en instituciones educativas con grietas, en vereda llamadas una casa muy affected y en la via majagual aumento de la falla",,,Vereda Llamadas
-4,ANZÁ,OCCIDENTE,INFRAESTRUCTURA VIAL,ALTA,"Guintar puente el choco, con afectaciones",Red Vial Secundaria,Puente,Puente El Chocó
-5,JARDÍN,SUROESTE,INFRAESTRUCTURA RELIGIOSA,Media,viviendas averiadas e iglesiada con desprendimiento de fachadas,,,
-6,CIUDAD BOLIVAR,SUROESTE,INFRAESTRUCTURA EDUCATIVA,Media,afectación Mamposteria de las casas,,,
-7,VALPARAÍSO,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Puente militar afectado,Red Vial Secundaria,Puente,Puente Militar
-8,YARUMAL,NORTE,INFRAESTRUCTURA VIVIENDAS,BAJA,Edificaciones con fisuras,,,
-9,YOLOMBÓ,NORDESTE,INFRAESTRUCTURA VIVIENDAS,BAJA,Afectaciones a viviendas. Infraestructura Vial sin afectaciones por el momento,,,
-10,BETANIA,SUROESTE,INFRAESTRUCTURA VIVIENDAS,BAJA,Afectaciones a viviendas,,,
-11,AMAGÁ,SUROESTE,INFRAESTRUCTURA HÍDRICA,BAJA,Afectaciones de la red que baja el agua sin tratar a la planta de tratamiento del municipio,,,Planta de Tratamiento
-12,ANDES,SUROESTE,INFRAESTRUCTURA VIVIENDAS,MEDIA,Afectaciones a viviendas,,,
-13,SOPETRÁN,OCCIDENTE,INFRAESTRUCTURA RELIGIOSA,MEDIA,afectaciones en iglesia y viviendas ... sin novedades de afectación vial,,,
-14,SAN JERÓNIMO,OCCIDENTE,INFRAESTRUCTURA EDUCATIVA,BAJA,afectación en casas y escuela sin novedad en la parte vial,,,
-15,SANTA FÉ DE ANTIOQUIA,OCCIDENTE,INFRAESTRUCTURA VIVIENDAS,BAJA,sin novedad en afectacion vial solo una iglesia y viviendas,,,
-16,LIBORINA,OCCIDENTE,INFRAESTRUCTURA VIVIENDAS,BAJA,afectaciones en viviendas escuela sin novedad en afectacion vial,,,
-17,COCORNÁ,ORIENTE,INFRAESTRUCTURA VIAL,ALTA,Afectación puente las arenosas,Red Vial Terciaria,Puente,Puente Las Arenosas
-18,CARAMANTA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Deterioro del pavimento por licuación del suelo,Red Vial Primaria,Pavimento Flexible,Vía Principal
+ID,MUNICIPIO,SUBREGIÓN,TIPO_AFECTACIÓN,GRAVEDAD,DESCRIPCIÓN,RED VIAL,TIPO RED VIAL,UBICACIÓN,ANOTACIONES
+1,TÁMESIS,SUROESTE,INFRAESTRUCTURA VIVIENDAS,BAJA,VIVIENDAS E IGLESIA RECIBIERON AFECTACIONES,,,,
+2,VENECIA,SUROESTE,INFRAESTRUCTURA RELIGIOSA,MEDIA,VIVIENDAS E IGLESIA RECIBIERON AFECTACIONES,,,,
+3,CONCORDIA,SUROESTE,INFRAESTRUCTURA EDUCATIVA,ALTA,"Afectaciones en Vivienda y en instituciones educativas con grietas, en vereda llamadas una casa muy affected y en la via majagual aumento de la falla",,,Vereda Llamadas,
+4,ANZÁ,OCCIDENTE,INFRAESTRUCTURA VIAL,ALTA,"Guintar puente el choco, con afectaciones",Red Vial Secundaria,Puente,Puente El Chocó,Se requiere evaluación estructural urgente
+5,JARDÍN,SUROESTE,INFRAESTRUCTURA RELIGIOSA,Media,viviendas averiadas e iglesiada con desprendimiento de fachadas,,,,
+6,CIUDAD BOLIVAR,SUROESTE,INFRAESTRUCTURA EDUCATIVA,Media,afectación Mamposteria de las casas,,,,
+7,VALPARAÍSO,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Puente militar afectado,Red Vial Secundaria,Puente,Puente Militar,Comisión técnica en desplazamiento
+8,YARUMAL,NORTE,INFRAESTRUCTURA VIVIENDAS,BAJA,Edificaciones con fisuras,,,,
+9,YOLOMBÓ,NORDESTE,INFRAESTRUCTURA VIVIENDAS,BAJA,Afectaciones a viviendas. Infraestructura Vial sin afectaciones por el momento,,,,
+10,BETANIA,SUROESTE,INFRAESTRUCTURA VIVIENDAS,BAJA,Afectaciones a viviendas,,,,
+11,AMAGÁ,SUROESTE,INFRAESTRUCTURA HÍDRICA,BAJA,Afectaciones de la red que baja el agua sin tratar a la planta de tratamiento del municipio,,,Planta de Tratamiento,
+12,ANDES,SUROESTE,INFRAESTRUCTURA VIVIENDAS,MEDIA,Afectaciones a viviendas,,,,
+13,SOPETRÁN,OCCIDENTE,INFRAESTRUCTURA RELIGIOSA,MEDIA,afectaciones en iglesia y viviendas ... sin novedades de afectación vial,,,,
+14,SAN JERÓNIMO,OCCIDENTE,INFRAESTRUCTURA EDUCATIVA,BAJA,afectación en casas y escuela sin novedad en la parte vial,,,,
+15,SANTA FÉ DE ANTIOQUIA,OCCIDENTE,INFRAESTRUCTURA VIVIENDAS,BAJA,sin novedad en afectacion vial solo una iglesia y viviendas,,,,
+16,LIBORINA,OCCIDENTE,INFRAESTRUCTURA VIVIENDAS,BAJA,afectaciones en viviendas escuela sin novedad en afectacion vial,,,,
+17,COCORNÁ,ORIENTE,INFRAESTRUCTURA VIAL,ALTA,Afectación puente las arenosas,Red Vial Terciaria,Puente,Puente Las Arenosas,Se reporta inclinación del puente
+18,CARAMANTA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Deterioro del pavimento por licuación del suelo,Red Vial Primaria,Pavimento Flexible,Vía Principal,Cierre preventivo parcial con paso a un carril
