@@ -2010,89 +2010,40 @@ document.addEventListener('DOMContentLoaded', () => {
             r.Subregion || '-',
             r.Red_Vial || '-',
             r.Tipo_Red_Vial || '-',
-            r.Descripcion || 'Sin descripción disponible'
+            r.Descripcion || 'Sin descripción disponible',
+            (r.Anotaciones && r.Anotaciones.trim()) ? r.Anotaciones.trim() : '-'
         ]);
 
         doc.autoTable({
             startY: nextY + 3,
-            head: [['N°', 'Municipio', 'Subregión', 'Red Vial', 'Tipo elemento vial', 'Descripción del Impacto']],
+            head: [['N°', 'Municipio', 'Subregión', 'Red Vial', 'Tipo elemento vial', 'Descripción del Impacto', 'Anotaciones y/o Soluciones']],
             body: tableBody,
             theme: 'grid',
             headStyles: {
                 fillColor: [239, 68, 68],
                 textColor: [255, 255, 255],
                 fontStyle: 'bold',
-                fontSize: 8,
+                fontSize: 7.5,
                 halign: 'center'
             },
             bodyStyles: {
-                fontSize: 7.5,
-                cellPadding: 2.5,
+                fontSize: 7,
+                cellPadding: 2,
                 textColor: [30, 41, 59]
             },
             columnStyles: {
                 0: { cellWidth: 8, halign: 'center' },
-                1: { cellWidth: 28, fontStyle: 'bold' },
-                2: { cellWidth: 25 },
-                3: { cellWidth: 28 },
-                4: { cellWidth: 28 },
-                5: { cellWidth: 'auto' }
+                1: { cellWidth: 24, fontStyle: 'bold' },
+                2: { cellWidth: 20 },
+                3: { cellWidth: 22 },
+                4: { cellWidth: 24 },
+                5: { cellWidth: 42 },
+                6: { cellWidth: 42 }
             },
             alternateRowStyles: {
                 fillColor: [248, 250, 252]
             }
         });
-
-        // --- SECCIÓN 4: ANOTACIONES Y/O SOLUCIONES (Solo municipios con anotación) ---
-        const reportsWithAnotaciones = vialReports.filter(r => r.Anotaciones && r.Anotaciones.trim() !== '');
-
-        if (reportsWithAnotaciones.length > 0) {
-            let sec4Y = doc.lastAutoTable.finalY + 8;
-            if (sec4Y + 25 > 275) {
-                doc.addPage();
-                sec4Y = 20;
-            }
-
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(10);
-            doc.setTextColor(15, 23, 42);
-            doc.text('4. Anotaciones y/o Soluciones', 14, sec4Y);
-
-            const anotacionesBody = reportsWithAnotaciones.map((r, idx) => [
-                (idx + 1).toString(),
-                r.Municipio || '-',
-                r.Subregion || '-',
-                r.Anotaciones.trim()
-            ]);
-
-            doc.autoTable({
-                startY: sec4Y + 3,
-                head: [['N°', 'Municipio', 'Subregión', 'Anotación']],
-                body: anotacionesBody,
-                theme: 'grid',
-                headStyles: {
-                    fillColor: [239, 68, 68],
-                    textColor: [255, 255, 255],
-                    fontStyle: 'bold',
-                    fontSize: 8,
-                    halign: 'center'
-                },
-                bodyStyles: {
-                    fontSize: 7.5,
-                    cellPadding: 2.5,
-                    textColor: [30, 41, 59]
-                },
-                columnStyles: {
-                    0: { cellWidth: 8, halign: 'center' },
-                    1: { cellWidth: 32, fontStyle: 'bold' },
-                    2: { cellWidth: 30 },
-                    3: { cellWidth: 'auto' }
-                },
-                alternateRowStyles: {
-                    fillColor: [248, 250, 252]
-                }
-            });
-        }
 
         // Pie de página en todas las páginas
         const pageCount = doc.getNumberOfPages();
