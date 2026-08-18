@@ -202,44 +202,22 @@
 
             <!-- Floating Info Card (Shows details when a municipality is clicked) -->
             <div id="info-card" class="info-card glass-panel hidden">
-                <button id="close-info-card-btn" class="close-card-btn">
+                <button id="close-info-card-btn" class="close-card-btn" title="Cerrar detalles">
                     <i data-lucide="x"></i>
                 </button>
                 <div class="info-card-header">
                     <span class="info-subregion" id="info-subregion-text">Suroeste</span>
-                    <h2 class="info-municipality" id="info-municipality-text">Támesis</h2>
+                    <div class="info-header-title-row">
+                        <h2 class="info-municipality" id="info-municipality-text">Támesis</h2>
+                        <div id="info-header-badge-container"></div>
+                    </div>
                 </div>
-                <div class="info-card-body">
-                    <div class="info-row">
-                        <span class="info-label">Tipo de Afectación:</span>
-                        <span class="info-value highlight" id="info-type-text">Viviendas Averiadas</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Nivel de Alerta / Gravedad:</span>
-                        <span class="gravity-badge" id="info-gravity-text">Alta</span>
-                    </div>
-                    <div class="info-row" id="info-red-vial-row" style="display: none;">
-                        <span class="info-label">Red Vial:</span>
-                        <span class="info-vial-type-badge" id="info-red-vial-text">-</span>
-                    </div>
-                    <div class="info-row" id="info-ubicacion-row" style="display: none;">
-                        <span class="info-label">Ubicación / Sector:</span>
-                        <span class="info-value" id="info-ubicacion-text">-</span>
-                    </div>
-                    <div class="info-desc-box">
-                        <span class="info-label">Descripción del Impacto:</span>
-                        <p class="info-desc-text" id="info-desc-text">Ejemplo de la información a mostrar sobre el municipio.</p>
-                    </div>
-                    <div class="info-desc-box info-anotaciones-box" id="info-anotaciones-row" style="display: none;">
-                        <span class="info-label"><i data-lucide="clipboard-check" class="icon-inline"></i> Anotaciones / Soluciones:</span>
-                        <p class="info-desc-text info-anotaciones-text" id="info-anotaciones-text">-</p>
-                    </div>
+                <div class="info-card-body" id="info-card-body-container">
+                    <!-- Dynamic multi-affectations or single report injected via app.js -->
                 </div>
                 <div class="info-card-footer">
                     <button class="btn btn-primary btn-sm btn-block" id="zoom-to-mpio-btn">Alinear Vista</button>
                 </div>
-            </div>
-
             </div>
         </main>
     </div>

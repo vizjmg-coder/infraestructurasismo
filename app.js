@@ -67,15 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
         infoCard: document.getElementById('info-card'),
         infoSubregion: document.getElementById('info-subregion-text'),
         infoMunicipality: document.getElementById('info-municipality-text'),
-        infoType: document.getElementById('info-type-text'),
-        infoGravity: document.getElementById('info-gravity-text'),
-        infoRedVialRow: document.getElementById('info-red-vial-row'),
-        infoRedVialText: document.getElementById('info-red-vial-text'),
-        infoUbicacionRow: document.getElementById('info-ubicacion-row'),
-        infoUbicacionText: document.getElementById('info-ubicacion-text'),
-        infoDesc: document.getElementById('info-desc-text'),
-        infoAnotacionesRow: document.getElementById('info-anotaciones-row'),
-        infoAnotacionesText: document.getElementById('info-anotaciones-text'),
+        infoHeaderBadgeContainer: document.getElementById('info-header-badge-container'),
+        infoCardBodyContainer: document.getElementById('info-card-body-container'),
         closeInfoCardBtn: document.getElementById('close-info-card-btn'),
         zoomToMpioBtn: document.getElementById('zoom-to-mpio-btn'),
         redVialTypesGrid: document.getElementById('red-vial-types-grid'),
@@ -111,6 +104,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Retornar RGB según la gravedad
     function getGravityRgb(gravity) {
         return SEVERITY_RGBS[gravity] || SEVERITY_RGBS['default'];
+    }
+
+    // Determinar el nivel de gravedad más alto entre un listado de reportes
+    function getHighestGravity(gravities) {
+        if (!gravities || gravities.length === 0) return 'Media';
+        const weights = { 'Alta': 3, 'Media': 2, 'Baja': 1 };
+        let maxWeight = 0;
+        let highest = 'Baja';
+        gravities.forEach(g => {
+            if (!g) return;
+            const norm = g.charAt(0).toUpperCase() + g.slice(1).toLowerCase();
+            const w = weights[norm] || 0;
+            if (w > maxWeight) {
+                maxWeight = w;
+                highest = norm;
+            }
+        });
+        return highest;
     }
 
     // Normalizar las claves de objetos cargados (ej. CSVs con variaciones en las cabeceras)
@@ -550,16 +561,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const layer = state.layerMap[normalized];
         if (!layer) return;
 
-        const hasReport = state.filteredReports.find(r => normalizeName(r.Municipio) === normalized);
+        const mpioReports = state.filteredReports.filter(r => normalizeName(r.Municipio) === normalized);
         const rawFeature = state.geojsonRaw ? state.geojsonRaw.features.find(f => normalizeName(f.properties.MPIO_NOMBR) === normalized) : null;
-        const mpioName = rawFeature ? rawFeature.properties.MPIO_NOMBR : normalized;
+        const mpioName = rawFeature ? rawFeature.properties.MPIO_NOMBR : (mpioReports[0]?.Municipio || normalized);
 
-        if (hasReport) {
+        if (mpioReports.length > 0) {
+            const highestGravity = getHighestGravity(mpioReports.map(r => r.Gravedad));
+            const color = getGravityColor(highestGravity);
             layer.setStyle({
-                fillColor: getGravityColor(hasReport.Gravedad),
-                fillOpacity: 0.15,
-                color: getGravityColor(hasReport.Gravedad),
+                fillColor: color,
+                fillOpacity: 0.18,
+                color: color,
                 weight: 1.5
+            });
+
+            // Tooltip informativo con indicación si hay múltiples afectaciones
+            const countText = mpioReports.length > 1
+                ? `<br><span style="font-size: 0.7rem; color: #fca5a5; font-weight: 600;">⚡ ${mpioReports.length} afectaciones reportadas</span>`
+                : `<br><span style="font-size: 0.7rem; color: #cbd5e1;">${mpioReports[0].Tipo_Afectacion}</span>`;
+
+            layer.unbindTooltip();
+            layer.bindTooltip(`<strong>${mpioName}</strong>${countText}`, {
+                direction: 'auto',
+                sticky: true,
+                className: 'mpio-hover-tooltip'
             });
         } else {
             layer.setStyle({
@@ -568,15 +593,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 color: 'rgba(255, 255, 255, 0.08)',
                 weight: 1
             });
-        }
 
-        // Restablecer el tooltip al modo hover básico
-        layer.unbindTooltip();
-        layer.bindTooltip(mpioName, {
-            direction: 'auto',
-            sticky: true,
-            className: 'mpio-hover-tooltip'
-        });
+            // Restablecer el tooltip al modo hover básico
+            layer.unbindTooltip();
+            layer.bindTooltip(mpioName, {
+                direction: 'auto',
+                sticky: true,
+                className: 'mpio-hover-tooltip'
+            });
+        }
     }
 
     /* ==========================================================================
@@ -941,41 +966,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Renderizar los marcadores de alerta en el centro geográfico de los municipios afectados
+    // Renderizar los marcadores de alerta en el centro geográfico de los municipios afectados (Unificados por municipio)
     function renderMarkers() {
         state.markersGroup.clearLayers();
         state.markerMap = {};
 
+        // Agrupar reportes filtrados por municipio para unificar marcadores en el mapa
+        const reportsByMpio = {};
         state.filteredReports.forEach(report => {
             const normalized = normalizeName(report.Municipio);
+            if (!reportsByMpio[normalized]) {
+                reportsByMpio[normalized] = [];
+            }
+            reportsByMpio[normalized].push(report);
+        });
+
+        Object.keys(reportsByMpio).forEach(normalized => {
+            const mpioReports = reportsByMpio[normalized];
             const layer = state.layerMap[normalized];
 
-            if (layer) {
+            if (layer && mpioReports.length > 0) {
                 // Obtener el centro del bounding box del polígono municipal
                 const center = layer.getBounds().getCenter();
-                const color = getGravityColor(report.Gravedad);
-                const isVial = isVialType(report.Tipo_Afectacion);
-                const redVialLabel = report.Red_Vial ? report.Red_Vial : 'VÍA';
+                const count = mpioReports.length;
+                const highestGravity = getHighestGravity(mpioReports.map(r => r.Gravedad));
+                const color = getGravityColor(highestGravity);
+                const hasVial = mpioReports.some(r => isVialType(r.Tipo_Afectacion) || !!r.Red_Vial);
+                const mpioName = mpioReports[0].Municipio;
 
-                // HTML Personalizado para el círculo de alerta pulsante (con tipo de Red Vial y municipio)
+                // Construir etiqueta de indicador para el marcador
+                let indicatorLabel = '';
+                if (count === 1) {
+                    const redVialLabel = mpioReports[0].Red_Vial ? mpioReports[0].Red_Vial : (isVialType(mpioReports[0].Tipo_Afectacion) ? 'VÍA' : mpioReports[0].Tipo_Afectacion);
+                    indicatorLabel = `${redVialLabel}<br><span class="vial-marker-mpio">${mpioName}</span>`;
+                } else {
+                    // Múltiples afectaciones en el mismo municipio (ej. Venecia, Betulia)
+                    indicatorLabel = `<span class="marker-count-pill">${count} AFECTACIONES</span><br><span class="vial-marker-mpio">${mpioName}</span>`;
+                }
+
+                // HTML Personalizado para el círculo de alerta pulsante
                 const markerHtml = `
-                    <div class="pulse-marker-wrapper ${isVial ? 'priority-vial-marker' : ''}" style="--marker-color: ${color}">
+                    <div class="pulse-marker-wrapper ${hasVial ? 'priority-vial-marker' : ''} ${count > 1 ? 'multi-affectations' : ''}" style="--marker-color: ${color}">
                         <div class="pulse-ring"></div>
-                        <div class="pulse-dot"></div>
-                        ${isVial ? `<span class="vial-marker-indicator" title="Afectación en ${redVialLabel}">${redVialLabel}<br><span class="vial-marker-mpio">${report.Municipio}</span></span>` : ''}
+                        <div class="pulse-dot" title="${mpioName}: ${count} afectación(es)">
+                            ${count > 1 ? `<span class="marker-badge-count">${count}</span>` : ''}
+                        </div>
+                        <span class="vial-marker-indicator" title="${mpioName}: ${count} afectación(es)">${indicatorLabel}</span>
                     </div>
                 `;
 
                 const customIcon = L.divIcon({
                     html: markerHtml,
-                    className: `custom-pulse-icon ${isVial ? 'vial-custom-icon' : ''}`,
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16]
+                    className: `custom-pulse-icon ${hasVial ? 'vial-custom-icon' : ''} ${count > 1 ? 'multi-icon' : ''}`,
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 18]
                 });
 
                 const marker = L.marker(center, { icon: customIcon });
 
-                // Al hacer clic en el marcador, seleccionar el municipio
+                // Al hacer clic en el marcador, seleccionar el municipio y desplegar el pop up unificado
                 marker.on('click', (e) => {
                     if (e) {
                         if (e.originalEvent) {
@@ -1223,7 +1272,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* ==========================================================================
-       Interacciones y Selección de Municipio
+       Interacciones y Selección de Municipio con Pop up Unificado
        ========================================================================== */
     function selectMunicipality(normalized, flyTo = false) {
         // Deseleccionar el anterior si lo hay
@@ -1237,20 +1286,25 @@ document.addEventListener('DOMContentLoaded', () => {
         state.selectedMpio = normalized;
 
         const layer = state.layerMap[normalized];
-        const report = state.reports.find(r => normalizeName(r.Municipio) === normalized);
+        // Obtener todos los reportes correspondientes a este municipio (priorizando filtrados si aplican)
+        const allMpioReports = state.reports.filter(r => normalizeName(r.Municipio) === normalized);
+        const filteredMpioReports = state.filteredReports.filter(r => normalizeName(r.Municipio) === normalized);
+        const reportsToShow = filteredMpioReports.length > 0 ? filteredMpioReports : allMpioReports;
 
         if (layer) {
+            const highestGravity = reportsToShow.length > 0 ? getHighestGravity(reportsToShow.map(r => r.Gravedad)) : null;
+            const color = highestGravity ? getGravityColor(highestGravity) : '#3b82f6';
+
             // Estilo seleccionado (glowing azul/blanco para indicar selección visual)
             layer.setStyle({
-                fillColor: report ? getGravityColor(report.Gravedad) : '#3b82f6',
-                fillOpacity: report ? 0.25 : 0.1,
+                fillColor: color,
+                fillOpacity: reportsToShow.length > 0 ? 0.28 : 0.1,
                 color: '#ffffff',
                 weight: 2.5
             });
             layer.bringToFront();
 
-            // Al seleccionar, ocultar el tooltip hover y NO mostrar tooltip permanente
-            // (la info card flotante ya muestra toda la información)
+            // Al seleccionar, ocultar el tooltip hover
             layer.unbindTooltip();
 
             if (flyTo) {
@@ -1261,91 +1315,155 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Mostrar u ocultar la tarjeta de información flotante
-        if (report) {
-            dom.infoSubregion.innerText = report.Subregion;
-            dom.infoMunicipality.innerText = report.Municipio;
-            dom.infoType.innerText = report.Tipo_Afectacion;
+        // Renderizar el pop up / tarjeta de información unificada con todas las afectaciones
+        renderInfoCard(normalized, reportsToShow);
 
-            dom.infoGravity.innerText = report.Gravedad;
-            dom.infoDesc.innerText = report.Descripcion;
-
-            // Mostrar u ocultar filas para Red Vial y Ubicación
-            if (dom.infoRedVialRow) {
-                if (report.Red_Vial) {
-                    dom.infoRedVialText.innerText = report.Red_Vial;
-                    dom.infoRedVialRow.style.display = 'flex';
-                } else {
-                    dom.infoRedVialRow.style.display = 'none';
-                }
-            }
-
-            if (dom.infoUbicacionRow) {
-                if (report.Ubicacion) {
-                    dom.infoUbicacionText.innerText = report.Ubicacion;
-                    dom.infoUbicacionRow.style.display = 'flex';
-                } else {
-                    dom.infoUbicacionRow.style.display = 'none';
-                }
-            }
-
-            // Mostrar u ocultar fila de Anotaciones / Soluciones
-            if (dom.infoAnotacionesRow) {
-                if (report.Anotaciones && report.Anotaciones.trim() !== '') {
-                    dom.infoAnotacionesText.innerText = report.Anotaciones;
-                    dom.infoAnotacionesRow.style.display = 'flex';
-                } else {
-                    dom.infoAnotacionesRow.style.display = 'none';
-                }
-            }
-
-            // Estilo de la insignia de gravedad en la tarjeta
-            dom.infoGravity.style.backgroundColor = `rgba(${getGravityRgb(report.Gravedad)}, 0.15)`;
-            dom.infoGravity.style.color = getGravityColor(report.Gravedad);
-            dom.infoGravity.style.border = `1px solid ${getGravityColor(report.Gravedad)}`;
-
-            dom.infoCard.classList.remove('hidden');
-        } else {
-            if (dom.infoRedVialRow) dom.infoRedVialRow.style.display = 'none';
-            if (dom.infoUbicacionRow) dom.infoUbicacionRow.style.display = 'none';
-            if (dom.infoAnotacionesRow) dom.infoAnotacionesRow.style.display = 'none';
-            // Municipio seleccionado no tiene reportes en el sismo
-            const rawFeature = state.geojsonRaw.features.find(f => normalizeName(f.properties.MPIO_NOMBR) === normalized);
-            const subregion = rawFeature ? rawFeature.properties.SUBREGION : 'Desconocida';
-            const name = rawFeature ? rawFeature.properties.MPIO_NOMBR : normalized;
-
-            dom.infoSubregion.innerText = subregion;
-            dom.infoMunicipality.innerText = name;
-            dom.infoType.innerText = 'Sin Afectaciones Reportadas';
-            dom.infoGravity.innerText = 'Nula';
-            dom.infoDesc.innerText = 'No se registran daños en infraestructura ni alertas de emergencia para este municipio.';
-
-            dom.infoGravity.style.backgroundColor = 'rgba(255,255,255,0.05)';
-            dom.infoGravity.style.color = 'var(--text-secondary)';
-            dom.infoGravity.style.border = '1px solid var(--border-color)';
-
-            dom.infoCard.classList.remove('hidden');
-        }
-
-        // Resaltar elemento correspondiente en el listado lateral
+        // Resaltar elementos correspondientes en el listado lateral
         const cards = dom.reportsList.querySelectorAll('.report-card');
+        let firstActiveCard = null;
         cards.forEach(card => {
-            const cardTitle = card.querySelector('.card-title').innerText;
+            const cardTitle = card.querySelector('.card-title')?.innerText || '';
             if (normalizeName(cardTitle) === normalized) {
                 card.classList.add('active');
-                card.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                // Scroll suave al elemento en la lista
-                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                card.style.backgroundColor = 'rgba(255, 255, 255, 0.08)';
+                if (!firstActiveCard) firstActiveCard = card;
             } else {
                 card.classList.remove('active');
                 card.style.backgroundColor = '';
             }
         });
 
+        if (firstActiveCard) {
+            firstActiveCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
         // En pantallas móviles, si se selecciona un municipio, cambiar automáticamente a la vista de mapa
         if (window.innerWidth <= 900 && state.showMapTab) {
             state.showMapTab();
         }
+    }
+
+    // Renderizar en un solo pop up las diferentes afectaciones de un municipio
+    function renderInfoCard(normalized, reports) {
+        const rawFeature = state.geojsonRaw ? state.geojsonRaw.features.find(f => normalizeName(f.properties.MPIO_NOMBR) === normalized) : null;
+        const mpioName = reports.length > 0 ? reports[0].Municipio : (rawFeature ? rawFeature.properties.MPIO_NOMBR : normalized);
+        const subregion = reports.length > 0 ? reports[0].Subregion : (rawFeature ? (rawFeature.properties.SUBREGION || 'Antioquia') : 'Antioquia');
+
+        if (dom.infoSubregion) dom.infoSubregion.innerText = subregion;
+        if (dom.infoMunicipality) dom.infoMunicipality.innerText = mpioName;
+
+        const badgeContainer = dom.infoHeaderBadgeContainer || document.getElementById('info-header-badge-container');
+        const bodyContainer = dom.infoCardBodyContainer || document.getElementById('info-card-body-container');
+
+        if (!bodyContainer) return;
+
+        if (reports.length === 0) {
+            if (badgeContainer) {
+                badgeContainer.innerHTML = `<span class="gravity-badge" style="background-color: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border-color);">Nula</span>`;
+            }
+            bodyContainer.innerHTML = `
+                <div class="info-single-report">
+                    <div class="info-row">
+                        <span class="info-label">Estado de Infraestructura:</span>
+                        <span class="info-value highlight">Sin Afectaciones Reportadas</span>
+                    </div>
+                    <div class="info-desc-box">
+                        <p class="info-desc-text">No se registran daños en infraestructura ni alertas de emergencia para este municipio.</p>
+                    </div>
+                </div>
+            `;
+        } else if (reports.length === 1) {
+            const report = reports[0];
+            const color = getGravityColor(report.Gravedad);
+            const rgb = getGravityRgb(report.Gravedad);
+
+            if (badgeContainer) {
+                badgeContainer.innerHTML = `<span class="gravity-badge" style="background-color: rgba(${rgb}, 0.15); color: ${color}; border: 1px solid ${color};">${report.Gravedad}</span>`;
+            }
+
+            bodyContainer.innerHTML = `
+                <div class="info-single-report">
+                    <div class="info-row">
+                        <span class="info-label">Tipo de Afectación:</span>
+                        <div class="info-type-header-row">
+                            <span class="info-value highlight">${report.Tipo_Afectacion}</span>
+                            ${report.Tipo_Red_Vial ? `<span class="info-tipo-badge">${report.Tipo_Red_Vial}</span>` : ''}
+                        </div>
+                    </div>
+                    ${report.Red_Vial ? `
+                        <div class="info-row">
+                            <span class="info-label">Red Vial:</span>
+                            <span class="card-red-vial-badge align-self-start">${report.Red_Vial}</span>
+                        </div>
+                    ` : ''}
+                    ${report.Ubicacion ? `
+                        <div class="info-row">
+                            <span class="info-label">Ubicación / Sector:</span>
+                            <span class="info-value"><i data-lucide="map-pin" class="icon-inline-xs"></i> ${report.Ubicacion}</span>
+                        </div>
+                    ` : ''}
+                    <div class="info-desc-box">
+                        <span class="info-label">Descripción del Impacto:</span>
+                        <p class="info-desc-text">${report.Descripcion}</p>
+                    </div>
+                    ${report.Anotaciones && report.Anotaciones.trim() !== '' ? `
+                        <div class="info-desc-box info-anotaciones-box">
+                            <span class="info-label"><i data-lucide="clipboard-check" class="icon-inline"></i> Anotaciones / Soluciones:</span>
+                            <p class="info-desc-text info-anotaciones-text">${report.Anotaciones}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        } else {
+            // Múltiples afectaciones en el mismo municipio (ej. Venecia, Betulia)
+            if (badgeContainer) {
+                badgeContainer.innerHTML = `
+                    <span class="multi-count-badge" title="Municipio con ${reports.length} afectaciones registradas">
+                        <i data-lucide="layers" class="icon-inline-xs"></i> ${reports.length} Afectaciones
+                    </span>
+                `;
+            }
+
+            bodyContainer.innerHTML = `
+                <div class="info-multi-reports-list scrollbar-custom">
+                    ${reports.map((report, idx) => {
+                        const color = getGravityColor(report.Gravedad);
+                        const rgb = getGravityRgb(report.Gravedad);
+                        return `
+                            <div class="info-report-item-card" style="--item-gravity-color: ${color};">
+                                <div class="info-item-card-header">
+                                    <span class="info-item-index">Afectación #${idx + 1}</span>
+                                    <div class="info-item-badges">
+                                        ${report.Red_Vial ? `<span class="card-red-vial-badge">${report.Red_Vial}</span>` : ''}
+                                        ${report.Tipo_Red_Vial ? `<span class="info-tipo-badge">${report.Tipo_Red_Vial}</span>` : ''}
+                                        <span class="gravity-badge" style="background-color: rgba(${rgb}, 0.15); color: ${color}; border: 1px solid ${color};">${report.Gravedad}</span>
+                                    </div>
+                                </div>
+                                <div class="info-item-type-title">${report.Tipo_Afectacion}</div>
+                                ${report.Ubicacion ? `
+                                    <div class="info-item-ubicacion-row">
+                                        <i data-lucide="map-pin" class="icon-inline-xs"></i>
+                                        <span><strong>Ubicación:</strong> ${report.Ubicacion}</span>
+                                    </div>
+                                ` : ''}
+                                <div class="info-item-desc-box">
+                                    <p class="info-desc-text">${report.Descripcion}</p>
+                                </div>
+                                ${report.Anotaciones && report.Anotaciones.trim() !== '' ? `
+                                    <div class="info-desc-box info-anotaciones-box">
+                                        <span class="info-label"><i data-lucide="clipboard-check" class="icon-inline"></i> Anotaciones / Soluciones:</span>
+                                        <p class="info-desc-text info-anotaciones-text">${report.Anotaciones}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+        if (dom.infoCard) dom.infoCard.classList.remove('hidden');
     }
 
     function deselectAll() {
@@ -1354,11 +1472,13 @@ document.addEventListener('DOMContentLoaded', () => {
             state.selectedMpio = null;
             resetLayerStyle(oldMpio);
         }
-        dom.infoCard.classList.add('hidden');
-        if (dom.infoAnotacionesRow) dom.infoAnotacionesRow.style.display = 'none';
+        if (dom.infoCard) dom.infoCard.classList.add('hidden');
 
         const cards = dom.reportsList.querySelectorAll('.report-card');
-        cards.forEach(card => card.classList.remove('active'));
+        cards.forEach(card => {
+            card.classList.remove('active');
+            card.style.backgroundColor = '';
+        });
     }
 
     /* ==========================================================================
@@ -1852,7 +1972,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         doc.setFontSize(8);
         doc.setTextColor(148, 163, 184);
-        doc.text(`Fecha de emisión: ${dateStr} - ${timeStr} | Municipios afectados: ${vialReports.length}`, 14, 30);
+        const uniqueVialMpiosCount = new Set(vialReports.map(r => normalizeName(r.Municipio))).size;
+        doc.text(`Fecha de emisión: ${dateStr} - ${timeStr} | Afectaciones registradas: ${vialReports.length} (${uniqueVialMpiosCount} municipios)`, 14, 30);
 
         // --- SECCIÓN 1: MAPA GENERAL VECTORIAL ---
         doc.setFont('helvetica', 'bold');

@@ -1,19 +1,20 @@
 ID,MUNICIPIO,SUBREGIÓN,TIPO_AFECTACIÓN,GRAVEDAD,DESCRIPCIÓN,RED VIAL,TIPO RED VIAL,UBICACIÓN,ANOTACIONES
-1,TÁMESIS,SUROESTE,INFRAESTRUCTURA VIVIENDAS,BAJA,VIVIENDAS E IGLESIA RECIBIERON AFECTACIONES,,,,
-2,VENECIA,SUROESTE,INFRAESTRUCTURA RELIGIOSA,MEDIA,VIVIENDAS E IGLESIA RECIBIERON AFECTACIONES,,,,
-3,CONCORDIA,SUROESTE,INFRAESTRUCTURA EDUCATIVA,ALTA,"Afectaciones en Vivienda y en instituciones educativas con grietas, en vereda llamadas una casa muy affected y en la via majagual aumento de la falla",,,Vereda Llamadas,
-4,ANZÁ,OCCIDENTE,INFRAESTRUCTURA VIAL,ALTA,"Guintar puente el choco, con afectaciones",Red Vial Secundaria,Puente,Puente El Chocó,Se requiere evaluación estructural urgente
-5,JARDÍN,SUROESTE,INFRAESTRUCTURA RELIGIOSA,Media,viviendas averiadas e iglesiada con desprendimiento de fachadas,,,,
-6,CIUDAD BOLIVAR,SUROESTE,INFRAESTRUCTURA EDUCATIVA,Media,afectación Mamposteria de las casas,,,,
-7,VALPARAÍSO,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Puente militar afectado,Red Vial Secundaria,Puente,Puente Militar,Comisión técnica en desplazamiento
-8,YARUMAL,NORTE,INFRAESTRUCTURA VIVIENDAS,BAJA,Edificaciones con fisuras,,,,
-9,YOLOMBÓ,NORDESTE,INFRAESTRUCTURA VIVIENDAS,BAJA,Afectaciones a viviendas. Infraestructura Vial sin afectaciones por el momento,,,,
-10,BETANIA,SUROESTE,INFRAESTRUCTURA VIVIENDAS,BAJA,Afectaciones a viviendas,,,,
-11,AMAGÁ,SUROESTE,INFRAESTRUCTURA HÍDRICA,BAJA,Afectaciones de la red que baja el agua sin tratar a la planta de tratamiento del municipio,,,Planta de Tratamiento,
-12,ANDES,SUROESTE,INFRAESTRUCTURA VIVIENDAS,MEDIA,Afectaciones a viviendas,,,,
-13,SOPETRÁN,OCCIDENTE,INFRAESTRUCTURA RELIGIOSA,MEDIA,afectaciones en iglesia y viviendas ... sin novedades de afectación vial,,,,
-14,SAN JERÓNIMO,OCCIDENTE,INFRAESTRUCTURA EDUCATIVA,BAJA,afectación en casas y escuela sin novedad en la parte vial,,,,
-15,SANTA FÉ DE ANTIOQUIA,OCCIDENTE,INFRAESTRUCTURA VIVIENDAS,BAJA,sin novedad en afectacion vial solo una iglesia y viviendas,,,,
-16,LIBORINA,OCCIDENTE,INFRAESTRUCTURA VIVIENDAS,BAJA,afectaciones en viviendas escuela sin novedad en afectacion vial,,,,
-17,COCORNÁ,ORIENTE,INFRAESTRUCTURA VIAL,ALTA,Afectación puente las arenosas,Red Vial Terciaria,Puente,Puente Las Arenosas,Se reporta inclinación del puente
-18,CARAMANTA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Deterioro del pavimento por licuación del suelo,Red Vial Primaria,Pavimento Flexible,Vía Principal,Cierre preventivo parcial con paso a un carril
+1,CIUDAD BOLIVAR,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Afectación en la vía Alto de los Jaramillo; ya se envió maquinaria a la zona.,Red Vial Terciaria,MOVIMIENTO EN MASA,,Ya se envió maquinaria a la zona.
+2,VENECIA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Puente afectado en el corregimiento de Bolombolo.,Red Vial Primaria,PUENTE,,
+3,VENECIA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Puente la Garces afectado en la vereda El Recreo,Red Vial Terciaria,PUENTE,,
+4,CONCORDIA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Aumento de la falla en la vía Majagual.,Red Vial Secundaria,PAVIMENTO FLEXIBLE,,
+5,ANZÁ,OCCIDENTE,INFRAESTRUCTURA VIAL,ALTA,Afectación en el puente El Chocho y puente Quiona.,Red Vial Secundaria,PUENTE,,
+6,JARDÍN,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Caída de rocas en la vía Jardín - Riosucio.,Red Vial Secundaria,MOVIMIENTO EN MASA,,Ya fue intervenido por RENTAN con maquinaria.
+7,BETANIA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,"Colapso de muro en zona urbana, sector Las Palomas. Se debe cerrar la vía y buscar desvío",Red Vial Urbana,Muro Contención,,
+8,VALPARAÍSO,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Puente militar y puente Sabaletas afectados.,Red Vial Secundaria,PUENTE,,
+9,COCORNÁ,ORIENTE,INFRAESTRUCTURA VIAL,ALTA,Afectación en el puente Las Arenosas (se inclinó).,Red Vial Terciaria,PUENTE,"6.046268705130367, -75.17627369092968",
+10,TARSO,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,La situación en parte de la vía de la vereda La Linda se agravó. Via que conduce de Tarso a Pueblorrico. Hundimiento de via,Red Vial Secundaria,PAVIMENTO FLEXIBLE,,
+11,CARACOLÍ,MAGDALENA MEDIO,INFRAESTRUCTURA VIAL,ALTA,"Aleta del puente San Roque Caracoli. Quebrada Gallinazos. - Perdida de cuneta en la misma via.",Red Vial Secundaria,PUENTE,"(6*27´36´´N74*48´45´´W)",
+12,ANGELÓPOLIS,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Afectación en el punto conocido como la balastrera,Red Vial Secundaria,MOVIMIENTO EN MASA,,
+13,BETULIA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Agrietamiento de la vía Concordía- La quiebra - Betulia,Red Vial Secundaria,PAVIMENTO FLEXIBLE,,
+14,BETULIA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,"Incremento falla existente en puente urbano, (Calle de las carnicerias).",Red Vial Urbana,PUENTE,,
+15,GUADALUPE,NORTE,INFRAESTRUCTURA VIAL,ALTA,Movimiento en masa en la via a la vereda San Pablo a una distancia de 10 km aproximados desde el casco urbano y movimiento en masa en la via Guadual puente acacias a una distancia aproximada de 9 km desde el casco urbano,Red Vial Terciaria,MOVIMIENTO EN MASA,,
+16,LA UNION,ORIENTE,INFRAESTRUCTURA VIAL,ALTA,"Afectacion de puente vehicular ubicado en el paso del rio piedras (Vereda San Francisco - Las Teresas) via con codigo 56062 terciaria a cargo del INVIAS. Coordenadas geograficas 5°55'25.91""N, -75°21'53.10""O. Las evidencias muestran grietas en ambas vigas del puente vehicular.",Red Vial Terciaria,PUENTE,"5°55'25.91""N, -75°21'53.10""O",
+17,ITUANGO,NORTE,INFRAESTRUCTURA VIAL,ALTA,"*Puente afectado en la vereda Pascuita - sector la partida. Con coordenadas geograficas 7°14'50.387""N,-75°39'27.492""O. *Puente afectado en direccion hacia el corregimiento la granja - sector portugal. Con coordenadas geograficas 7°14'53.43""N,-75°44'13.38""O.",Red vial terciaria,PUENTE,"7°14'50.387""N,-75°39'27.492""O",
+18,YOLOMBO,NORDESTE,INFRAESTRUCTURA VIAL,ALTA,Movimiento en masa en la via de Yolombo a Vegachi,Red Vial Secundaria,PAVIMENTO FLEXIBLE,,
+19,LA PINTADA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Afectacion en puente peatonal en el sector montenegro,Red vial terciaria,PUENTE,,
