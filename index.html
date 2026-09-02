@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SismoInfra Antioquia - Monitor de Afectaciones de Infraestructura</title>
+    
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Loading Overlay (Instant startup) -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loader-content">
+            <div class="spinner"></div>
+            <h2>SismoInfra Antioquia</h2>
+            <p id="loading-status">Inicializando base de datos geográfica...</p>
+            <div class="progress-bar-container">
+                <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+            </div>
+            <span class="loading-subtext">Cargando límites municipales (22.4 MB)</span>
+        </div>
+    </div>
+
+    <!-- Mobile Navigation Switcher (Solo móvil) -->
+    <div class="mobile-nav-bar" id="mobile-nav-bar">
+        <button class="mobile-tab-btn active" id="tab-map-btn">
+            <i data-lucide="map"></i> Mapa Interactivo
+        </button>
+        <button class="mobile-tab-btn" id="tab-list-btn">
+            <i data-lucide="list-filter"></i> Reportes & Filtros
+        </button>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <div id="app-container" class="app-container">
+        
+        <!-- Sidebar Panel -->
+        <aside class="sidebar glass-panel">
+            <!-- Sidebar Header -->
+            <header class="sidebar-header">
+                <h1 class="header-main-title">REPORTE DE AFECTACIÓN - INFRAESTRUCTURA VIAL</h1>
+                <span class="header-sub-title">Secretaría de Infraestructura Física - Gobernación de Antioquia</span>
+            </header>
+
+            <!-- Damage Types Section -->
+            <section class="damage-types-section">
+                <div class="section-title">
+                    <h3>Afectaciones por Tipo Red Vial</h3>
+                    <div class="header-stat-card">
+                        <i data-lucide="milestone" class="icon-sm"></i>
+                        <span class="stat-value" id="stat-affected-count">0</span>
+                        <span class="stat-text">Municipios Afectados</span>
+                    </div>
+                </div>
+                <div class="damage-types-grid" id="damage-types-grid">
+                    <!-- Dynamic cards will go here -->
+                    <div class="no-data">Cargando tipos...</div>
+                </div>
+            </section>
+
+            <!-- Tarjetas Tipo Red Vial -->
+            <section class="red-vial-types-section">
+                <div class="red-vial-types-header">
+                    <i data-lucide="road" class="red-vial-header-icon"></i>
+                    <span>Tipo de Elemento Vial</span>
+                </div>
+                <div class="red-vial-types-grid" id="red-vial-types-grid">
+                    <div class="no-data">Sin datos cargados</div>
+                </div>
+            </section>
+
+            <!-- Subregiones Chart Section -->
+            <section class="subregions-chart-section">
+                <div class="section-title">
+                    <h3>Afectaciones por Subregión</h3>
+                    <select id="subregion-filter" class="glass-select-sm">
+                        <option value="all">Todas las Subregiones</option>
+                        <option value="Bajo Cauca">Bajo Cauca</option>
+                        <option value="Magdalena Medio">Magdalena Medio</option>
+                        <option value="Nordeste">Nordeste</option>
+                        <option value="Norte">Norte</option>
+                        <option value="Occidente">Occidente</option>
+                        <option value="Oriente">Oriente</option>
+                        <option value="Suroeste">Suroeste</option>
+                        <option value="Urabá">Urabá</option>
+                        <option value="Valle de Aburrá">Valle de Aburrá</option>
+                    </select>
+                </div>
+                <div class="subregions-chart-container" id="subregions-chart-container">
+                    <div class="no-data">Cargando gráfico...</div>
+                </div>
+            </section>
+
+            <!-- Reports List -->
+            <section class="reports-section">
+                <div class="section-title">
+                    <h3>Listado de Afectaciones</h3>
+                    <span class="badge" id="visible-reports-count">0</span>
+                </div>
+                <div id="reports-list" class="reports-list scrollbar-custom">
+                    <!-- Dynamic report cards go here -->
+                    <div class="no-data">Cargando registros...</div>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Map Container -->
+        <main class="map-container">
+            <!-- Leaflet Map -->
+            <div id="map"></div>
+
+            <!-- Floating Map Controls -->
+            <div class="map-controls-floating">
+                <div class="map-controls-top-row">
+                    <button class="btn-floating" id="reset-map-btn" title="Restablecer vista de Antioquia">
+                        <i data-lucide="map-pin"></i>
+                    </button>
+                    <button class="btn-floating btn-floating-pdf" id="export-pdf-btn" title="Exportar Reporte PDF de Infraestructura Vial">
+                        <i data-lucide="file-down"></i>
+                        <span class="btn-floating-label">Exportar PDF Vial</span>
+                    </button>
+                </div>
+
+                <!-- Panel de Listado de Municipios con Visita Técnica -->
+                <div class="visita-tecnica-list-panel glass-panel" id="visita-tecnica-list-panel">
+                    <div class="visita-list-header" id="visita-list-header">
+                        <div class="visita-list-title">
+                            <span class="visita-list-icon">📋</span>
+                            <span>Visitas Técnicas</span>
+                            <span class="visita-list-badge" id="visita-list-count">3</span>
+                        </div>
+                        <button class="btn-visita-collapse" id="btn-visita-collapse" title="Minimizar / Expandir">
+                            <i data-lucide="chevron-down" class="icon-xs"></i>
+                        </button>
+                    </div>
+                    <div class="visita-list-body scrollbar-custom" id="visita-list-body">
+                        <!-- Renderizado dinámicamente desde app.js -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Map Legend & Layer Control -->
+            <div class="map-legend-panel glass-panel" id="map-legend-panel">
+                <div class="legend-panel-header" id="legend-panel-header">
+                    <div class="legend-header-title">
+                        <i data-lucide="layers" class="icon-sm"></i>
+                        <span>Capas y Leyenda</span>
+                    </div>
+                    <button class="btn-legend-collapse" id="btn-legend-collapse" title="Minimizar / Expandir">
+                        <i data-lucide="chevron-down" class="icon-sm"></i>
+                    </button>
+                </div>
+                <div class="legend-panel-body" id="legend-panel-body">
+                    <!-- Switches de Capas Geográficas -->
+                    <div class="legend-section-title">Mostrar Capas</div>
+                    <div class="legend-layer-toggles">
+                        <label class="layer-toggle-item" for="toggle-layer-cordilleras">
+                            <div class="layer-toggle-info">
+                                <span class="layer-icon-symbol">🏔️</span>
+                                <span class="layer-toggle-label">Cordilleras</span>
+                            </div>
+                            <div class="custom-switch-wrap">
+                                <input type="checkbox" id="toggle-layer-cordilleras" class="layer-checkbox">
+                                <span class="switch-slider"></span>
+                            </div>
+                        </label>
+                        <label class="layer-toggle-item" for="toggle-layer-epicenter">
+                            <div class="layer-toggle-info">
+                                <span class="layer-icon-symbol">⚡</span>
+                                <span class="layer-toggle-label">Epicentro Sismo</span>
+                            </div>
+                            <div class="custom-switch-wrap">
+                                <input type="checkbox" id="toggle-layer-epicenter" class="layer-checkbox">
+                                <span class="switch-slider"></span>
+                            </div>
+                        </label>
+                        <label class="layer-toggle-item layer-toggle-visita" for="toggle-filter-visita">
+                            <div class="layer-toggle-info">
+                                <span class="layer-icon-symbol">📋</span>
+                                <span class="layer-toggle-label">Solo Visita Técnica</span>
+                            </div>
+                            <div class="custom-switch-wrap">
+                                <input type="checkbox" id="toggle-filter-visita" class="layer-checkbox">
+                                <span class="switch-slider"></span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Simbología de Gravedad -->
+                    <div class="legend-section-title">Nivel de Gravedad</div>
+                    <div class="legend-severity-items">
+                        <div class="legend-sev-item">
+                            <span class="legend-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+                            <span style="color: #6ee7b7; font-weight: 600;">Visita Técnica</span>
+                        </div>
+                        <div class="legend-sev-item">
+                            <span class="legend-dot dot-alta"></span>
+                            <span>Alta</span>
+                        </div>
+                        <div class="legend-sev-item">
+                            <span class="legend-dot dot-media"></span>
+                            <span>Media</span>
+                        </div>
+                        <div class="legend-sev-item">
+                            <span class="legend-dot dot-baja"></span>
+                            <span>Baja</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Info Card (Shows details when a municipality is clicked) -->
+            <div id="info-card" class="info-card glass-panel hidden">
+                <button id="close-info-card-btn" class="close-card-btn" title="Cerrar detalles">
+                    <i data-lucide="x"></i>
+                </button>
+                <div class="info-card-header">
+                    <span class="info-subregion" id="info-subregion-text">Suroeste</span>
+                    <div class="info-header-title-row">
+                        <h2 class="info-municipality" id="info-municipality-text">Támesis</h2>
+                        <div id="info-header-badge-container"></div>
+                    </div>
+                </div>
+                <div class="info-card-body" id="info-card-body-container">
+                    <!-- Dynamic multi-affectations or single report injected via app.js -->
+                </div>
+                <div class="info-card-footer">
+                    <button class="btn btn-primary btn-sm btn-block" id="zoom-to-mpio-btn">Alinear Vista</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Visor Integrado de Informes de Visita Técnica PDF -->
+    <div id="modal-pdf-viewer" class="modal-pdf-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-pdf-title-text">
+        <div class="modal-pdf-container">
+            <div class="modal-pdf-header">
+                <div class="modal-pdf-title">
+                    <i data-lucide="file-text"></i>
+                    <span id="modal-pdf-title-text">Informe de Visita Técnica</span>
+                </div>
+                <div class="modal-pdf-actions">
+                    <a id="modal-pdf-external-btn" href="#" target="_blank" rel="noopener noreferrer" class="modal-pdf-btn">
+                        <i data-lucide="external-link"></i> Abrir en Google Drive
+                    </a>
+                    <button id="modal-pdf-close-btn" class="modal-pdf-close-btn" title="Cerrar visor (Esc)">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-pdf-body">
+                <iframe id="modal-pdf-iframe" src="" allow="autoplay" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Lucide Icons for modern SVGs -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- PapaParse for loading/parsing CSV uploads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" referrerpolicy="no-referrer"></script>
+    
+    <!-- jsPDF & jsPDF-AutoTable for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>

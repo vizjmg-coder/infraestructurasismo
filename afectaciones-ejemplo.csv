@@ -1,0 +1,20 @@
+ID,MUNICIPIO,SUBREGIÓN,TIPO_AFECTACIÓN,GRAVEDAD,DESCRIPCIÓN,RED VIAL,TIPO RED VIAL,UBICACIÓN,ANOTACIONES
+1,CIUDAD BOLIVAR,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Afectación en la vía Alto de los Jaramillo; ya se envió maquinaria a la zona.,Red Vial Terciaria,MOVIMIENTO EN MASA,,Ya se envió maquinaria a la zona.
+2,VENECIA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Puente afectado en el corregimiento de Bolombolo.,Red Vial Primaria,PUENTE,,
+3,VENECIA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Puente la Garces afectado en la vereda El Recreo,Red Vial Terciaria,PUENTE,,
+4,CONCORDIA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Aumento de la falla en la vía Majagual.,Red Vial Secundaria,PAVIMENTO FLEXIBLE,,
+5,ANZÁ,OCCIDENTE,INFRAESTRUCTURA VIAL,ALTA,Afectación en el puente El Chocho y puente Quiona.,Red Vial Secundaria,PUENTE,,
+6,JARDÍN,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Caída de rocas en la vía Jardín - Riosucio.,Red Vial Secundaria,MOVIMIENTO EN MASA,,Ya fue intervenido por RENTAN con maquinaria.
+7,BETANIA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,"Colapso de muro en zona urbana, sector Las Palomas. Se debe cerrar la vía y buscar desvío",Red Vial Urbana,Muro Contención,,
+8,VALPARAÍSO,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Puente militar y puente Sabaletas afectados.,Red Vial Secundaria,PUENTE,,
+9,COCORNÁ,ORIENTE,INFRAESTRUCTURA VIAL,ALTA,Afectación en el puente Las Arenosas (se inclinó).,Red Vial Terciaria,PUENTE,"6.046268705130367, -75.17627369092968",
+10,TARSO,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,La situación en parte de la vía de la vereda La Linda se agravó. Via que conduce de Tarso a Pueblorrico. Hundimiento de via,Red Vial Secundaria,PAVIMENTO FLEXIBLE,,
+11,CARACOLÍ,MAGDALENA MEDIO,INFRAESTRUCTURA VIAL,ALTA,"Aleta del puente San Roque Caracoli. Quebrada Gallinazos. - Perdida de cuneta en la misma via.",Red Vial Secundaria,PUENTE,"(6*27´36´´N74*48´45´´W)",
+12,ANGELÓPOLIS,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Afectación en el punto conocido como la balastrera,Red Vial Secundaria,MOVIMIENTO EN MASA,,
+13,BETULIA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Agrietamiento de la vía Concordía- La quiebra - Betulia,Red Vial Secundaria,PAVIMENTO FLEXIBLE,,
+14,BETULIA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,"Incremento falla existente en puente urbano, (Calle de las carnicerias).",Red Vial Urbana,PUENTE,,
+15,GUADALUPE,NORTE,INFRAESTRUCTURA VIAL,ALTA,Movimiento en masa en la via a la vereda San Pablo a una distancia de 10 km aproximados desde el casco urbano y movimiento en masa en la via Guadual puente acacias a una distancia aproximada de 9 km desde el casco urbano,Red Vial Terciaria,MOVIMIENTO EN MASA,,
+16,LA UNION,ORIENTE,INFRAESTRUCTURA VIAL,ALTA,"Afectacion de puente vehicular ubicado en el paso del rio piedras (Vereda San Francisco - Las Teresas) via con codigo 56062 terciaria a cargo del INVIAS. Coordenadas geograficas 5°55'25.91""N, -75°21'53.10""O. Las evidencias muestran grietas en ambas vigas del puente vehicular.",Red Vial Terciaria,PUENTE,"5°55'25.91""N, -75°21'53.10""O",
+17,ITUANGO,NORTE,INFRAESTRUCTURA VIAL,ALTA,"*Puente afectado en la vereda Pascuita - sector la partida. Con coordenadas geograficas 7°14'50.387""N,-75°39'27.492""O. *Puente afectado en direccion hacia el corregimiento la granja - sector portugal. Con coordenadas geograficas 7°14'53.43""N,-75°44'13.38""O.",Red vial terciaria,PUENTE,"7°14'50.387""N,-75°39'27.492""O",
+18,YOLOMBO,NORDESTE,INFRAESTRUCTURA VIAL,ALTA,Movimiento en masa en la via de Yolombo a Vegachi,Red Vial Secundaria,PAVIMENTO FLEXIBLE,,
+19,LA PINTADA,SUROESTE,INFRAESTRUCTURA VIAL,ALTA,Afectacion en puente peatonal en el sector montenegro,Red vial terciaria,PUENTE,,
